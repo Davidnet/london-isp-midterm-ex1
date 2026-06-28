@@ -1,0 +1,7 @@
+# Bounce/recording test artifacts dropped at repo root (the app's real assets live in assets/)
+/bounce-*.wav
+/bounce-test*.wav
+
+# OS / editor cruft
+.DS_Store
+*~
