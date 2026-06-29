@@ -28,7 +28,8 @@ function paramNorm(stage, param, value) {
     return Math.min(1, Math.max(0, (db - floor) / (0 - floor)));
   }
   if (r.log) {
-    const lo = Math.log(r.min), hi = Math.log(r.max);
+    const lo = Math.log(r.min),
+      hi = Math.log(r.max);
     return (Math.log(Math.max(r.min, value)) - lo) / (hi - lo);
   }
   return (value - r.min) / (r.max - r.min);
@@ -40,12 +41,13 @@ function paramDenorm(stage, param, t) {
   if (!r || r.min === undefined) return t;
   t = Math.min(1, Math.max(0, t));
   if (r.db) {
-    if (t <= 0) return 0;                         // true silence at the very bottom
+    if (t <= 0) return 0; // true silence at the very bottom
     const floor = -60;
-    return Math.pow(10, (floor + t * (0 - floor)) / 20);   // dB taper → linear gain
+    return Math.pow(10, (floor + t * (0 - floor)) / 20); // dB taper → linear gain
   }
   if (r.log) {
-    const lo = Math.log(r.min), hi = Math.log(r.max);
+    const lo = Math.log(r.min),
+      hi = Math.log(r.max);
     return Math.exp(lo + t * (hi - lo));
   }
   return r.min + t * (r.max - r.min);
@@ -53,24 +55,36 @@ function paramDenorm(stage, param, t) {
 
 // Indicator angle in radians: -135° + value·270° (README geometry).
 function knobAngle(stage, param, value) {
-  return (-135 + paramNorm(stage, param, value) * 270) * Math.PI / 180;
+  return ((-135 + paramNorm(stage, param, value) * 270) * Math.PI) / 180;
 }
 
 // Human-readable readout for a param, matching the mock's strings.
 function paramDisplay(stage, param, value) {
   switch (stage + '.' + param) {
-    case 'lowpass.cutoff':   return value >= 1000 ? (value / 1000).toFixed(2) + ' kHz' : Math.round(value) + ' Hz';
-    case 'lowpass.res':      return value.toFixed(1);
-    case 'waveshaper.amount':return '+' + Math.round(value * 32) + ' dB';
-    case 'compressor.threshold': return Math.round(value) + ' dB';
-    case 'compressor.ratio': return value.toFixed(1) + ':1';
-    case 'compressor.attack':return Math.round(value * 1000) + ' ms';
-    case 'compressor.knee':  return Math.round(value) + ' dB';
-    case 'compressor.release': return Math.round(value * 1000) + ' ms';
-    case 'reverb.duration':  return value.toFixed(1) + ' s';
-    case 'reverb.decay':     return value.toFixed(1);
-    case 'master.volume':    return (20 * Math.log10(Math.max(0.001, value))).toFixed(0) + ' dB';
-    default: return String(value);
+    case 'lowpass.cutoff':
+      return value >= 1000 ? (value / 1000).toFixed(2) + ' kHz' : Math.round(value) + ' Hz';
+    case 'lowpass.res':
+      return value.toFixed(1);
+    case 'waveshaper.amount':
+      return '+' + Math.round(value * 32) + ' dB';
+    case 'compressor.threshold':
+      return Math.round(value) + ' dB';
+    case 'compressor.ratio':
+      return value.toFixed(1) + ':1';
+    case 'compressor.attack':
+      return Math.round(value * 1000) + ' ms';
+    case 'compressor.knee':
+      return Math.round(value) + ' dB';
+    case 'compressor.release':
+      return Math.round(value * 1000) + ' ms';
+    case 'reverb.duration':
+      return value.toFixed(1) + ' s';
+    case 'reverb.decay':
+      return value.toFixed(1);
+    case 'master.volume':
+      return (20 * Math.log10(Math.max(0.001, value))).toFixed(0) + ' dB';
+    default:
+      return String(value);
   }
 }
 
@@ -85,12 +99,12 @@ W.knob = function (cx, cy, lbl, disp, angle, accent) {
   for (let a = 0; a < 360; a += 12) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R, (a - 90) * Math.PI / 180, (a - 90 + 6) * Math.PI / 180);
+    ctx.arc(cx, cy, R, ((a - 90) * Math.PI) / 180, ((a - 90 + 6) * Math.PI) / 180);
     ctx.fillStyle = '#464c55';
     ctx.fill();
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R, (a - 90 + 6) * Math.PI / 180, (a - 90 + 12) * Math.PI / 180);
+    ctx.arc(cx, cy, R, ((a - 90 + 6) * Math.PI) / 180, ((a - 90 + 12) * Math.PI) / 180);
     ctx.fillStyle = '#2a2e34';
     ctx.fill();
   }
@@ -126,7 +140,8 @@ W.knob = function (cx, cy, lbl, disp, angle, accent) {
 W.fader = function (x, y, w, lbl, pct, disp, accent) {
   // Label, track groove, cap and readout all share the centerline `y`.
   label(lbl, x, y, { weight: 600, size: 9, spacing: 0.08, baseline: 'middle' });
-  const trackX = x + 56, trackW = w - 56 - 40;
+  const trackX = x + 56,
+    trackW = w - 56 - 40;
   panel(trackX, y - 5, trackW, 10, 5, '#15171b', '#23262b', { border: null, inset: true });
 
   const capX = trackX + (pct / 100) * trackW;
@@ -243,12 +258,22 @@ W.spectrum = function (x, y, w, h, title, spec, accent, opts = {}) {
 
   // header text
   label(title, x + 12, y + 16, { role: 'mono', weight: 500, size: 10, color: title.includes('OUT') ? accent : '#5f7d77', spacing: 0.2 });
-  label(title.includes('OUT') ? 'processed' : 'original', x + w - 12, y + 16, { role: 'mono', weight: 500, size: 10, color: '#3f5e58', align: 'right' });
+  label(title.includes('OUT') ? 'processed' : 'original', x + w - 12, y + 16, {
+    role: 'mono',
+    weight: 500,
+    size: 10,
+    color: '#3f5e58',
+    align: 'right',
+  });
 
   // bars
-  const padX = 12, padBottom = 22, padTop = 26;
-  const areaX = x + padX, areaW = w - padX * 2;
-  const areaBottom = y + h - padBottom, areaH = h - padTop - padBottom;
+  const padX = 12,
+    padBottom = 22,
+    padTop = 26;
+  const areaX = x + padX,
+    areaW = w - padX * 2;
+  const areaBottom = y + h - padBottom,
+    areaH = h - padTop - padBottom;
   const N = 26;
   const bw = areaW / N;
   for (let i = 0; i < N; i++) {
@@ -258,7 +283,11 @@ W.spectrum = function (x, y, w, h, title, spec, accent, opts = {}) {
       v = spec[idx] / 255;
     }
     const bh = Math.max(1, v * areaH);
-    if (glow) { ctx.save(); ctx.shadowColor = accent; ctx.shadowBlur = 7; }
+    if (glow) {
+      ctx.save();
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = 7;
+    }
     ctx.fillStyle = barColor;
     roundRectPath(ctx, areaX + i * bw + 1, areaBottom - bh, bw - 2, bh, 2);
     ctx.fill();
@@ -269,7 +298,13 @@ W.spectrum = function (x, y, w, h, title, spec, accent, opts = {}) {
   const ticks = ['50', '200', '1k', '5k', '20k'];
   for (let i = 0; i < ticks.length; i++) {
     const tx = areaX + (i / (ticks.length - 1)) * areaW;
-    label(ticks[i], tx, y + h - 7, { role: 'mono', weight: 500, size: 8, color: '#34534d', align: i === 0 ? 'left' : i === ticks.length - 1 ? 'right' : 'center' });
+    label(ticks[i], tx, y + h - 7, {
+      role: 'mono',
+      weight: 500,
+      size: 8,
+      color: '#34534d',
+      align: i === 0 ? 'left' : i === ticks.length - 1 ? 'right' : 'center',
+    });
   }
 
   // scan line
@@ -314,14 +349,21 @@ W.spectrum = function (x, y, w, h, title, spec, accent, opts = {}) {
 /* ---------------- output VU meter (14 segments) ---------------- */
 
 W.vu = function (x, y, level) {
-  const N = 14, segW = 5, gap = 2, segH = 13;
+  const N = 14,
+    segW = 5,
+    gap = 2,
+    segH = 13;
   const lit = Math.round(Math.min(1, level / 0.35) * N);
   for (let i = 0; i < N; i++) {
     const sx = x + i * (segW + gap);
     let col = '#1b2422';
     if (i < lit) col = i < 9 ? THEME.vu.teal : i < 12 ? THEME.vu.amber : THEME.vu.red;
     const ctx = drawingContext;
-    if (i < lit) { ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 5; }
+    if (i < lit) {
+      ctx.save();
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 5;
+    }
     ctx.fillStyle = col;
     roundRectPath(ctx, sx, y, segW, segH, 1);
     ctx.fill();
@@ -348,7 +390,8 @@ W.icon = function (type, cx, cy, s, color) {
 
   switch (type) {
     case 'play':
-    case 'tri': { // right-pointing triangle
+    case 'tri': {
+      // right-pointing triangle
       const w = type === 'tri' ? s * 0.42 : r * 0.84;
       ctx.beginPath();
       ctx.moveTo(cx - r * 0.62, cy - r * 0.82);
@@ -359,29 +402,40 @@ W.icon = function (type, cx, cy, s, color) {
       break;
     }
     case 'pause': {
-      const bw = s * 0.2, gap = s * 0.18, bh = s * 0.84;
-      roundRectPath(ctx, cx - gap / 2 - bw, cy - bh / 2, bw, bh, 1); ctx.fill();
-      roundRectPath(ctx, cx + gap / 2, cy - bh / 2, bw, bh, 1); ctx.fill();
+      const bw = s * 0.2,
+        gap = s * 0.18,
+        bh = s * 0.84;
+      roundRectPath(ctx, cx - gap / 2 - bw, cy - bh / 2, bw, bh, 1);
+      ctx.fill();
+      roundRectPath(ctx, cx + gap / 2, cy - bh / 2, bw, bh, 1);
+      ctx.fill();
       break;
     }
     case 'stop': {
       const side = s * 0.74;
-      roundRectPath(ctx, cx - side / 2, cy - side / 2, side, side, 2); ctx.fill();
+      roundRectPath(ctx, cx - side / 2, cy - side / 2, side, side, 2);
+      ctx.fill();
       break;
     }
-    case 'loop': { // refresh-style circular arrow with a gap + arrowhead at top
+    case 'loop': {
+      // refresh-style circular arrow with a gap + arrowhead at top
       const R = r * 0.66;
       ctx.lineWidth = s * 0.14;
-      const top = -Math.PI / 2, gap = 0.55;
+      const top = -Math.PI / 2,
+        gap = 0.55;
       const aEnd = top - gap + Math.PI * 2;
       ctx.beginPath();
       ctx.arc(cx, cy, R, top + gap, aEnd);
       ctx.stroke();
       // arrowhead at the end of the arc, pointing along travel (clockwise)
-      const px = cx + Math.cos(aEnd) * R, py = cy + Math.sin(aEnd) * R;
-      const tx = -Math.sin(aEnd), ty = Math.cos(aEnd);   // tangent (travel dir)
-      const nx = Math.cos(aEnd), ny = Math.sin(aEnd);     // radial
-      const L = s * 0.22, Wd = s * 0.17;
+      const px = cx + Math.cos(aEnd) * R,
+        py = cy + Math.sin(aEnd) * R;
+      const tx = -Math.sin(aEnd),
+        ty = Math.cos(aEnd); // tangent (travel dir)
+      const nx = Math.cos(aEnd),
+        ny = Math.sin(aEnd); // radial
+      const L = s * 0.22,
+        Wd = s * 0.17;
       ctx.beginPath();
       ctx.moveTo(px + tx * L, py + ty * L);
       ctx.lineTo(px + nx * Wd, py + ny * Wd);
@@ -390,9 +444,12 @@ W.icon = function (type, cx, cy, s, color) {
       ctx.fill();
       break;
     }
-    case 'skip': { // ⇤ : bar on the left + left-pointing triangle
-      const bw = s * 0.12, bh = s * 0.8;
-      roundRectPath(ctx, cx - r * 0.7, cy - bh / 2, bw, bh, 1); ctx.fill();
+    case 'skip': {
+      // ⇤ : bar on the left + left-pointing triangle
+      const bw = s * 0.12,
+        bh = s * 0.8;
+      roundRectPath(ctx, cx - r * 0.7, cy - bh / 2, bw, bh, 1);
+      ctx.fill();
       ctx.beginPath();
       ctx.moveTo(cx + r * 0.6, cy - r * 0.72);
       ctx.lineTo(cx + r * 0.6, cy + r * 0.72);
@@ -402,22 +459,31 @@ W.icon = function (type, cx, cy, s, color) {
       break;
     }
     case 'plus': {
-      const t = s * 0.2, l = s * 0.82;
-      roundRectPath(ctx, cx - t / 2, cy - l / 2, t, l, 1); ctx.fill();
-      roundRectPath(ctx, cx - l / 2, cy - t / 2, l, t, 1); ctx.fill();
+      const t = s * 0.2,
+        l = s * 0.82;
+      roundRectPath(ctx, cx - t / 2, cy - l / 2, t, l, 1);
+      ctx.fill();
+      roundRectPath(ctx, cx - l / 2, cy - t / 2, l, t, 1);
+      ctx.fill();
       break;
     }
-    case 'arrow': { // →
+    case 'arrow': {
+      // →
       ctx.lineWidth = s * 0.12;
-      ctx.beginPath(); ctx.moveTo(cx - r * 0.8, cy); ctx.lineTo(cx + r * 0.3, cy); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.8, cy);
+      ctx.lineTo(cx + r * 0.3, cy);
+      ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(cx + r * 0.8, cy);
       ctx.lineTo(cx + r * 0.1, cy - r * 0.45);
       ctx.lineTo(cx + r * 0.1, cy + r * 0.45);
-      ctx.closePath(); ctx.fill();
+      ctx.closePath();
+      ctx.fill();
       break;
     }
-    case 'note': { // ♪
+    case 'note': {
+      // ♪
       ctx.beginPath();
       ctx.ellipse(cx - r * 0.35, cy + r * 0.45, r * 0.34, r * 0.26, -0.35, 0, Math.PI * 2);
       ctx.fill();

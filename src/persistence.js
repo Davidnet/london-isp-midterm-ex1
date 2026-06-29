@@ -15,7 +15,9 @@
  */
 
 const Store = (function () {
-  const DB = 'ferric', STORE = 'audio', VER = 1;
+  const DB = 'ferric',
+    STORE = 'audio',
+    VER = 1;
   const LS_KEY = 'ferric.library';
   let dbp = null;
 
@@ -25,7 +27,12 @@ const Store = (function () {
     if (dbp) return dbp;
     dbp = new Promise((res, rej) => {
       let r;
-      try { r = indexedDB.open(DB, VER); } catch (e) { return rej(e); }
+      try {
+        r = indexedDB.open(DB, VER);
+      } catch (e) {
+        rej(e);
+        return;
+      }
       r.onupgradeneeded = () => {
         const db = r.result;
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
@@ -41,21 +48,36 @@ const Store = (function () {
   }
 
   function putBlob(id, blob) {
-    return store('readwrite').then((os) => new Promise((res, rej) => {
-      const r = os.put(blob, id); r.onsuccess = () => res(); r.onerror = () => rej(r.error);
-    }));
+    return store('readwrite').then(
+      (os) =>
+        new Promise((res, rej) => {
+          const r = os.put(blob, id);
+          r.onsuccess = () => res();
+          r.onerror = () => rej(r.error);
+        })
+    );
   }
 
   function getBlob(id) {
-    return store('readonly').then((os) => new Promise((res, rej) => {
-      const r = os.get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error);
-    }));
+    return store('readonly').then(
+      (os) =>
+        new Promise((res, rej) => {
+          const r = os.get(id);
+          r.onsuccess = () => res(r.result || null);
+          r.onerror = () => rej(r.error);
+        })
+    );
   }
 
   function delBlob(id) {
-    return store('readwrite').then((os) => new Promise((res, rej) => {
-      const r = os.delete(id); r.onsuccess = () => res(); r.onerror = () => rej(r.error);
-    }));
+    return store('readwrite').then(
+      (os) =>
+        new Promise((res, rej) => {
+          const r = os.delete(id);
+          r.onsuccess = () => res();
+          r.onerror = () => rej(r.error);
+        })
+    );
   }
 
   /* ---------------- localStorage (index) ---------------- */
@@ -64,39 +86,98 @@ const Store = (function () {
     try {
       const items = library.map((it) => ({ id: it.id, name: it.name, type: it.type, config: it.config }));
       localStorage.setItem(LS_KEY, JSON.stringify({ activeId: activeId || null, items }));
-    } catch (e) { console.warn('[store] saveLibrary failed', e); }
+    } catch (e) {
+      console.warn('[store] saveLibrary failed', e);
+    }
   }
 
   function loadLibrary() {
-    try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; }
-    catch (e) { return null; }
+    try {
+      const s = localStorage.getItem(LS_KEY);
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      return null;
+    }
   }
 
-  function clearLibrary() { try { localStorage.removeItem(LS_KEY); } catch (e) { /* ignore */ } }
+  function clearLibrary() {
+    try {
+      localStorage.removeItem(LS_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
 
   /* ---------------- WAV encode (bounce buffer → Blob) ---------------- */
 
   // 16-bit PCM WAV from a Web Audio AudioBuffer.
   function encodeWav(ab) {
-    const numCh = ab.numberOfChannels, sr = ab.sampleRate, len = ab.length;
-    const blockAlign = numCh * 2, dataLen = len * blockAlign;
-    const buf = new ArrayBuffer(44 + dataLen), view = new DataView(buf);
-    let o = 0;
-    const str = (s) => { for (let i = 0; i < s.length; i++) view.setUint8(o++, s.charCodeAt(i)); };
-    const u32 = (v) => { view.setUint32(o, v, true); o += 4; };
-    const u16 = (v) => { view.setUint16(o, v, true); o += 2; };
-    str('RIFF'); u32(36 + dataLen); str('WAVE');
-    str('fmt '); u32(16); u16(1); u16(numCh); u32(sr); u32(sr * blockAlign); u16(blockAlign); u16(16);
-    str('data'); u32(dataLen);
-    const chans = [];
-    for (let c = 0; c < numCh; c++) chans.push(ab.getChannelData(c));
-    for (let i = 0; i < len; i++) {
-      for (let c = 0; c < numCh; c++) {
-        const s = Math.max(-1, Math.min(1, chans[c][i]));
-        view.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); o += 2;
+    const channels = ab.numberOfChannels;
+    const sampleRate = ab.sampleRate;
+    const frameCount = ab.length;
+    const bitsPerSample = 16;
+    const bytesPerSample = bitsPerSample / 8;
+    const blockAlign = channels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const dataLength = frameCount * blockAlign;
+    const headerLength = 44;
+
+    const buffer = new ArrayBuffer(headerLength + dataLength);
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    function writeString(value) {
+      for (let i = 0; i < value.length; i++) {
+        view.setUint8(offset, value.charCodeAt(i));
+        offset += 1;
       }
     }
-    return new Blob([buf], { type: 'audio/wav' });
+
+    function writeUint32(value) {
+      view.setUint32(offset, value, true);
+      offset += 4;
+    }
+
+    function writeUint16(value) {
+      view.setUint16(offset, value, true);
+      offset += 2;
+    }
+
+    function writeInt16Sample(value) {
+      const clamped = Math.max(-1, Math.min(1, value));
+      const scaled = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
+      view.setInt16(offset, scaled, true);
+      offset += 2;
+    }
+
+    writeString('RIFF');
+    writeUint32(36 + dataLength);
+    writeString('WAVE');
+
+    writeString('fmt ');
+    writeUint32(16);
+    writeUint16(1);
+    writeUint16(channels);
+    writeUint32(sampleRate);
+    writeUint32(byteRate);
+    writeUint16(blockAlign);
+    writeUint16(bitsPerSample);
+
+    writeString('data');
+    writeUint32(dataLength);
+
+    const channelData = [];
+    for (let channel = 0; channel < channels; channel++) {
+      channelData.push(ab.getChannelData(channel));
+    }
+
+    for (let frame = 0; frame < frameCount; frame++) {
+      for (let channel = 0; channel < channels; channel++) {
+        writeInt16Sample(channelData[channel][frame]);
+      }
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
   }
 
   return { putBlob, getBlob, delBlob, saveLibrary, loadLibrary, clearLibrary, encodeWav };

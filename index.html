@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <!--
   index.html — FX Processor (Direction A). Real application entry point.
 
@@ -9,43 +9,73 @@
   Serve over http (loadSound/loadFont need it):  python3 -m http.server
 -->
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ferric · FX — Signal Processor</title>
-  <style>
-    /* Vendored fonts for any DOM elements (modals, inputs in later slices).
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ferric · FX — Signal Processor</title>
+    <style>
+      /* Vendored fonts for any DOM elements (modals, inputs in later slices).
        Canvas text uses loadFont() on the same files. */
-    @font-face { font-family: 'Hanken Grotesk'; font-weight: 400;
-      src: url('fonts/hanken-grotesk/HankenGrotesk-Regular.ttf') format('truetype'); }
-    @font-face { font-family: 'Hanken Grotesk'; font-weight: 600;
-      src: url('fonts/hanken-grotesk/HankenGrotesk-SemiBold.ttf') format('truetype'); }
-    @font-face { font-family: 'Hanken Grotesk'; font-weight: 700;
-      src: url('fonts/hanken-grotesk/HankenGrotesk-Bold.ttf') format('truetype'); }
-    @font-face { font-family: 'Hanken Grotesk'; font-weight: 800;
-      src: url('fonts/hanken-grotesk/HankenGrotesk-ExtraBold.ttf') format('truetype'); }
-    @font-face { font-family: 'Spline Sans Mono'; font-weight: 400;
-      src: url('fonts/spline-sans-mono/SplineSansMono-Regular.ttf') format('truetype'); }
-    @font-face { font-family: 'Spline Sans Mono'; font-weight: 500;
-      src: url('fonts/spline-sans-mono/SplineSansMono-Medium.ttf') format('truetype'); }
-    @font-face { font-family: 'Spline Sans Mono'; font-weight: 600;
-      src: url('fonts/spline-sans-mono/SplineSansMono-SemiBold.ttf') format('truetype'); }
+      @font-face {
+        font-family: 'Hanken Grotesk';
+        font-weight: 400;
+        src: url('fonts/hanken-grotesk/HankenGrotesk-Regular.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Hanken Grotesk';
+        font-weight: 600;
+        src: url('fonts/hanken-grotesk/HankenGrotesk-SemiBold.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Hanken Grotesk';
+        font-weight: 700;
+        src: url('fonts/hanken-grotesk/HankenGrotesk-Bold.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Hanken Grotesk';
+        font-weight: 800;
+        src: url('fonts/hanken-grotesk/HankenGrotesk-ExtraBold.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Spline Sans Mono';
+        font-weight: 400;
+        src: url('fonts/spline-sans-mono/SplineSansMono-Regular.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Spline Sans Mono';
+        font-weight: 500;
+        src: url('fonts/spline-sans-mono/SplineSansMono-Medium.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Spline Sans Mono';
+        font-weight: 600;
+        src: url('fonts/spline-sans-mono/SplineSansMono-SemiBold.ttf') format('truetype');
+      }
 
-    html, body { margin: 0; padding: 0; height: 100%; background: #0c0d10; overflow: hidden; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
-  <!-- p5 + p5.sound (local, version-pinned) -->
-  <script src="libraries/p5/p5.js"></script>
-  <script src="libraries/p5/addons/p5.sound.js"></script>
-  <!-- app: data → theme/widgets → audio → sketch -->
-  <script src="src/state.js"></script>
-  <script src="src/persistence.js"></script>
-  <script src="src/theme.js"></script>
-  <script src="src/ui/widgets.js"></script>
-  <script src="src/ui/modal.js"></script>
-  <script src="src/audioEngine.js"></script>
-  <script src="src/sketch.js"></script>
-</body>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0c0d10;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- p5 + p5.sound (local, version-pinned) -->
+    <script src="libraries/p5/p5.js"></script>
+    <script src="libraries/p5/addons/p5.sound.js"></script>
+    <!-- app: data → theme/widgets → audio → sketch -->
+    <script src="src/state.js"></script>
+    <script src="src/persistence.js"></script>
+    <script src="src/theme.js"></script>
+    <script src="src/ui/widgets.js"></script>
+    <script src="src/ui/modal.js"></script>
+    <script src="src/audioEngine.js"></script>
+    <script src="src/sketch.js"></script>
+  </body>
 </html>
