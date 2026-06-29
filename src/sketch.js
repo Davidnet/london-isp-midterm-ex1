@@ -40,6 +40,8 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(Math.min(2, window.devicePixelRatio || 1));
   seedLibrary();
+  // Guarded: if ui/modal.js failed to load, the rest of the unit still boots.
+  if (typeof setupModalDnD === 'function') setupModalDnD();
 }
 
 // Seed the library with the bundled samples as dry sources (no effect config).
@@ -77,6 +79,7 @@ function draw() {
   drawRack();
   pop();
 
+  if (AppState.modal) drawModalLayer();
   if (!started) drawPowerHint();
 }
 
@@ -443,6 +446,7 @@ function drawLibrary() {
   W.icon('plus', addX + addW / 2, cardY + 30, 13, THEME.accent);
   label('ADD SOUND', addX + addW / 2, cardY + 58, { weight: 700, size: 12, spacing: 0.07, color: THEME.accent, align: 'center', baseline: 'middle' });
   label('IMPORT FILE', addX + addW / 2, cardY + 73, { role: 'mono', weight: 500, size: 8, spacing: 0.1, color: THEME.ink, align: 'center', baseline: 'middle' });
+  pushHot(addX, cardY, addW, cardH, openFilePicker);
 }
 
 /* ---------------- interaction plumbing ---------------- */
@@ -465,6 +469,7 @@ function hline(x1, y, x2, color = 'rgba(0,0,0,0.28)') {
 
 function mousePressed() {
   if (!started) { powerOn(); return; }
+  if (AppState.modal) { modalMousePressed(); return; }
   const dx = (mouseX - gOX) / gScale, dy = (mouseY - gOY) / gScale;
   for (let i = hot.length - 1; i >= 0; i--) {
     const r = hot[i];
@@ -509,6 +514,10 @@ function mouseDragged() {
 }
 
 function mouseReleased() { drag = null; }
+
+// Keyboard goes to the library dialog's name field when it's open.
+function keyTyped() { if (modalKeyTyped()) return false; }
+function keyPressed() { if (AppState.modal && modalKeyPressed()) return false; }
 
 /* ---------------- preset actions (footer) ---------------- */
 
