@@ -132,8 +132,12 @@ function confirmAdd() {
     id: 'imp-' + (++importSeq) + '-' + Math.floor(millis()),
     name: name, type: 'file', audio: ModalData.pending.sound, config: null,
   });
-  item.blob = ModalData.pending.blob;   // kept for persistence (Slice 3d)
+  item.blob = ModalData.pending.blob;   // kept for persistence
   AppState.library.push(item);
+  if (typeof Store !== 'undefined') {
+    Store.putBlob(item.id, item.blob).catch((e) => console.warn('[store] put failed', e));
+    Store.saveLibrary(AppState.library, AppState.activeId);
+  }
   ModalData.pending = null;
   ModalData.focused = false;
   AppState.modal = null;
@@ -151,6 +155,11 @@ function confirmBounce() {
     config: deepClone(ModalData.pending.config),
   });
   AppState.library.push(item);
+  if (typeof Store !== 'undefined') {
+    const ab = ModalData.pending.buffer && ModalData.pending.buffer.buffer;   // p5.SoundFile → AudioBuffer
+    if (ab) Store.putBlob(item.id, Store.encodeWav(ab)).catch((e) => console.warn('[store] put failed', e));
+    Store.saveLibrary(AppState.library, AppState.activeId);
+  }
   ModalData.pending = null;
   ModalData.focused = false;
   AppState.modal = null;

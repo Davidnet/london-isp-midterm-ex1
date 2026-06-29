@@ -39,13 +39,12 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(Math.min(2, window.devicePixelRatio || 1));
-  seedLibrary();
+  initLibrary();
   // Guarded: if ui/modal.js failed to load, the rest of the unit still boots.
   if (typeof setupModalDnD === 'function') setupModalDnD();
 }
 
 // Seed the library with the bundled samples as dry sources (no effect config).
-// Persisted/imported/bounced items get merged in later (Slice 3d).
 function seedLibrary() {
   if (AppState.library.length) return;
   for (let i = 0; i < samples.length; i++) {
@@ -56,10 +55,52 @@ function seedLibrary() {
   }
 }
 
-// Empty-state action: wipe the library and re-add the bundled default sounds.
+// Map a sample id ('sample3') back to its preloaded p5.SoundFile.
+function sampleAudioById(id) {
+  const m = /^sample(\d+)$/.exec(id);
+  return m ? samples[Number(m[1]) - 1] || null : null;
+}
+
+// Boot the library: seed defaults, then overlay any persisted library (Slice 3d).
+// Default samples re-link to /assets by id; imported/bounce items reload their
+// blobs from IndexedDB asynchronously (cards show immediately, audio fills in).
+function initLibrary() {
+  seedLibrary();
+  if (typeof Store === 'undefined') return;
+  const saved = Store.loadLibrary();
+  if (!saved || !Array.isArray(saved.items)) return;   // first run → keep defaults
+
+  const rebuilt = [];
+  for (const e of saved.items) {
+    const item = makeLibraryItem({ id: e.id, name: e.name, type: e.type, config: e.config || null, audio: null });
+    const sample = sampleAudioById(e.id);
+    if (sample) {
+      item.audio = sample;
+    } else {
+      Store.getBlob(e.id).then((blob) => {
+        if (!blob) return;
+        loadSound(URL.createObjectURL(blob), (snd) => { item.audio = snd; },
+          (err) => console.warn('[restore] load failed', e.id, err));
+      }).catch(() => {});
+    }
+    rebuilt.push(item);
+  }
+  AppState.library = rebuilt;
+  if (saved.activeId) AppState.activeId = saved.activeId;
+}
+
+// Persist the current library index (metadata + active selection).
+function persistLibrary() {
+  if (typeof Store !== 'undefined') Store.saveLibrary(AppState.library, AppState.activeId);
+}
+
+// Empty-state action: wipe the library, re-add the bundled defaults, drop the
+// persisted index so the fresh defaults are what reloads.
 function restoreLibrary() {
   AppState.library = [];
   seedLibrary();
+  AppState.activeId = null;
+  if (typeof Store !== 'undefined') Store.clearLibrary();
 }
 
 function windowResized() { resizeCanvas(windowWidth, windowHeight); }
@@ -555,8 +596,13 @@ function powerOn() {
   userStartAudio();
   loadPreset();          // restore a saved preset (if any) before the graph reads config
   AudioEngine.init();
-  AudioEngine.loadSource(samples[0]);
-  AppState.activeId = 'sample1';
+  // Resume the last active sound (persisted), else the first loaded one.
+  const active = AppState.library.find((x) => x.id === AppState.activeId && x.audio)
+    || AppState.library.find((x) => x.audio);
+  if (active) {
+    AudioEngine.loadSource(active.audio);
+    AppState.activeId = active.id;
+  }
   started = true;
 }
 
@@ -603,6 +649,7 @@ function libPlay(item) {
     AudioEngine.applyConfig();
   }
   AudioEngine.play();
+  persistLibrary();
 }
 
 // EDIT — load this sound (and its saved config, if any) into the editor without
@@ -618,6 +665,7 @@ function libEdit(item) {
   }
   AppState.config.selected = AppState.selected;
   AudioEngine.applyConfig();
+  persistLibrary();
 }
 
 // CLR — clear this sound's effects: it becomes a dry source. If it's the active
@@ -628,6 +676,7 @@ function libClr(item) {
     for (const s of FX_STAGES) AppState.config[s].on = false;
     AudioEngine.applyConfig();
   }
+  persistLibrary();
 }
 
 // DEL — remove the sound from the library. If it was active, stop playback.
@@ -638,6 +687,8 @@ function libDel(item) {
     AppState.activeId = null;
     AudioEngine.stop();
   }
+  if (typeof Store !== 'undefined') Store.delBlob(item.id).catch(() => {});
+  persistLibrary();
 }
 
 /* ---------------- power hint overlay ---------------- */
