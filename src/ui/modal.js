@@ -86,14 +86,21 @@ function setupModalDnD() {
 
 /* ---------------- actions ---------------- */
 
-function stopPreview() {
-  const s = ModalData.pending && ModalData.pending.sound;
-  if (s && s.isPlaying()) s.stop();
+// The playable clip for whichever mode is open: imported sound, or bounce buffer.
+function previewSound() {
+  if (!ModalData.pending) return null;
+  return ModalData.pending.sound || ModalData.pending.buffer || null;
 }
 
-// Preview the pending (dry) clip straight to the output — not through the chain.
+function stopPreview() {
+  const s = previewSound();
+  if (s && s.isPlaying && s.isPlaying()) s.stop();
+}
+
+// Preview the pending clip straight to the output (dry import, or the bounce
+// buffer which is already processed) — not back through the chain.
 function modalPreview() {
-  const s = ModalData.pending && ModalData.pending.sound;
+  const s = previewSound();
   if (!s) return;
   if (s.isPlaying()) s.stop(); else s.play();
 }
@@ -109,9 +116,15 @@ function closeModal() {
   AppState.modal = null;
 }
 
-// + ADD TO LIBRARY — keep the decoded clip as a dry library item.
+// Confirm dispatches by mode (Enter / the primary button both land here).
 function modalConfirm() {
-  if (AppState.modal !== 'add' || !ModalData.pending) return;
+  if (AppState.modal === 'add') return confirmAdd();
+  if (AppState.modal === 'bounce') return confirmBounce();
+}
+
+// + ADD TO LIBRARY — keep the decoded clip as a dry library item.
+function confirmAdd() {
+  if (!ModalData.pending) return;
   stopPreview();
   if (ModalData.pending.url) URL.revokeObjectURL(ModalData.pending.url);
   const name = sanitizeName(ModalData.name) || ModalData.pending.name || 'imported';
@@ -124,6 +137,46 @@ function modalConfirm() {
   ModalData.pending = null;
   ModalData.focused = false;
   AppState.modal = null;
+}
+
+// ADD TO LIBRARY — store the processed bounce + the effect config it baked in.
+function confirmBounce() {
+  if (!ModalData.pending) return;
+  stopPreview();
+  const name = sanitizeName(ModalData.name) || 'bounce';
+  const item = makeLibraryItem({
+    id: 'bnc-' + (++importSeq) + '-' + Math.floor(millis()),
+    name: name, type: 'bounce',
+    audio: ModalData.pending.buffer,
+    config: deepClone(ModalData.pending.config),
+  });
+  AppState.library.push(item);
+  ModalData.pending = null;
+  ModalData.focused = false;
+  AppState.modal = null;
+}
+
+// EXPORT WAV — download the capture only (per the handoff's save(buf,name+'.wav')).
+// Keeps the dialog open so you can still add it to the library afterwards.
+function exportBounceWav() {
+  if (!ModalData.pending) return;
+  const name = sanitizeName(ModalData.name) || 'bounce';
+  AudioEngine.saveBounce(ModalData.pending.buffer, name);
+}
+
+// Open the dialog in bounce mode once a recording is captured (called from
+// sketch when the recorder's async buffer is ready). config = the snapshot of
+// what was printed into the file.
+function openBounceModal(buffer, config) {
+  stopPreview();
+  ModalData.pending = {
+    buffer: buffer, config: config || deepClone(AppState.config),
+    name: 'bounce-01', format: 'WAV',
+    duration: (buffer && buffer.duration) ? buffer.duration() : 0,
+  };
+  ModalData.name = 'bounce-01';
+  ModalData.focused = false;
+  AppState.modal = 'bounce';
 }
 
 /* ---------------- keyboard ---------------- */
@@ -176,7 +229,33 @@ function drawModalLayer() {
   translate(gOX, gOY);
   scale(gScale);
   if (AppState.modal === 'add') drawAddDialog();
+  else if (AppState.modal === 'bounce') drawBounceDialog();
   pop();
+}
+
+// Draw a captured buffer's waveform into an LCD strip (real peaks if available).
+function drawWaveform(buf, x, y, w, h, color) {
+  let peaks = null;
+  try { if (buf && buf.getPeaks) peaks = buf.getPeaks(Math.min(260, Math.floor(w))); } catch (e) { /* no peaks */ }
+  const ctx = drawingContext, midY = y + h / 2;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.globalAlpha = 0.9; ctx.lineWidth = 1;
+  if (peaks && peaks.length) {
+    // Normalize to the buffer's own peak so quiet bounces still read; cap the
+    // gain so near-silence doesn't get amplified into full-scale noise.
+    let max = 0;
+    for (let i = 0; i < peaks.length; i++) max = Math.max(max, Math.abs(peaks[i]));
+    const gain = max > 0.002 ? Math.min(1 / max, 14) : 0;
+    const step = w / peaks.length;
+    for (let i = 0; i < peaks.length; i++) {
+      const a = Math.min(1, Math.abs(peaks[i]) * gain) * (h / 2 - 3);
+      const px = x + i * step;
+      ctx.beginPath(); ctx.moveTo(px, midY - Math.max(0.5, a)); ctx.lineTo(px, midY + Math.max(0.5, a)); ctx.stroke();
+    }
+  } else {
+    ctx.beginPath(); ctx.moveTo(x, midY); ctx.lineTo(x + w, midY); ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawCloseX(cx, cy, s, color) {
@@ -279,4 +358,107 @@ function drawAddDialog() {
   W.icon('plus', addX + 28, aY + aH / 2, 14, '#eafffb');
   label('ADD TO LIBRARY', addX + addW / 2 + 12, aY + aH / 2, { weight: 700, size: 13, spacing: 0.06, color: '#eafffb', align: 'center', baseline: 'middle' });
   pushMhot(addX, aY, addW, aH, modalConfirm);
+}
+
+// Bounce mode — save the processed capture (effects baked in) to the library.
+function drawBounceDialog() {
+  const p = ModalData.pending;
+  if (!p) { closeModal(); return; }
+
+  const dlgW = 720, dlgH = 500;
+  const dlgX = (DW - dlgW) / 2, dlgY = (RACK_H - dlgH) / 2;
+  const padX = dlgX + 28, innerW = dlgW - 56;
+  const ctx = drawingContext;
+
+  panel(dlgX, dlgY, dlgW, dlgH, 16, '#272b31', '#1a1c21', { dropShadow: true, topHighlight: true, border: '#3a3f47' });
+  pushMhot(dlgX, dlgY, dlgW, dlgH, () => { ModalData.focused = false; });
+
+  // header (red LED — this is a recording)
+  led(padX + 5, dlgY + 30, 11, THEME.recRed, true);
+  label('RECORDING CAPTURED', padX + 20, dlgY + 24, { weight: 800, size: 20, spacing: 0.04, color: '#e7eaee', baseline: 'middle' });
+  label('SAVE TO LIBRARY', padX + 20, dlgY + 44, { role: 'mono', weight: 500, size: 9, spacing: 0.2, color: THEME.ink, baseline: 'middle' });
+  const xcx = dlgX + dlgW - 30, xcy = dlgY + 30;
+  drawCloseX(xcx, xcy, 14, THEME.ink);
+  pushMhot(xcx - 16, xcy - 16, 32, 32, closeModal);
+
+  // context badge (red-tinted)
+  const bgY = dlgY + 62, bgH = 24, bgW = 460;
+  panel(padX, bgY, bgW, bgH, 6, 'rgba(255,77,77,0.12)', 'rgba(255,77,77,0.05)', { border: 'rgba(255,77,77,0.30)' });
+  ctx.save(); ctx.fillStyle = THEME.recRed; ctx.beginPath(); ctx.arc(padX + 16, bgY + bgH / 2, 4, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  label('BOUNCE · PROCESSED OUTPUT · ' + fmtDuration(p.duration) + ' · WAV',
+    padX + 28, bgY + bgH / 2, { role: 'mono', weight: 600, size: 9, spacing: 0.08, color: '#ffb3b3', baseline: 'middle' });
+
+  // preview LCD strip: ▶ + waveform + WAV·48k
+  const zx = padX, zy = dlgY + 96, zw = innerW, zh = 92;
+  ctx.save();
+  ctx.fillStyle = vGrad(zy, zh, THEME.lcd[0], THEME.lcd[1]);
+  roundRectPath(ctx, zx, zy, zw, zh, 10); ctx.fill();
+  ctx.restore();
+  const playing = previewSound() && previewSound().isPlaying();
+  const pvx = zx + 40, pvy = zy + zh / 2;
+  ctx.save(); ctx.strokeStyle = THEME.accent; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(pvx, pvy, 20, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  W.icon(playing ? 'stop' : 'tri', pvx + (playing ? 0 : 2), pvy, 14, THEME.accent);
+  pushMhot(pvx - 20, pvy - 20, 40, 40, modalPreview);
+  drawWaveform(p.buffer, pvx + 34, zy + 12, zw - (pvx + 34 - zx) - 70, zh - 24, THEME.accent);
+  label('WAV · 48k', zx + zw - 14, pvy, { role: 'mono', weight: 500, size: 9, color: '#3f5e58', align: 'right', baseline: 'middle' });
+  ctx.strokeStyle = 'rgba(42,212,200,0.12)'; ctx.lineWidth = 1;
+  roundRectPath(ctx, zx + 0.5, zy + 0.5, zw - 1, zh - 1, 10); ctx.stroke();
+
+  // file name
+  const nlY = dlgY + 208;
+  label('FILE NAME', padX, nlY, { weight: 600, size: 9, spacing: 0.2, color: THEME.ink });
+  const fldX = padX, fldY = nlY + 10, fldW = innerW, fldH = 40;
+  panel(fldX, fldY, fldW, fldH, 8, '#15171b', '#1d2025', { border: ModalData.focused ? THEME.accent : '#3a3f47', inset: true });
+  label('.wav', fldX + fldW - 16, fldY + fldH / 2, { role: 'mono', weight: 500, size: 13, color: THEME.ink, align: 'right', baseline: 'middle' });
+  label(ModalData.name, fldX + 16, fldY + fldH / 2, { role: 'mono', weight: 600, size: 15, color: '#e7eaee', baseline: 'middle' });
+  if (ModalData.focused && Math.floor(millis() / 450) % 2 === 0) {
+    const cwd = textWidth(ModalData.name), cxp = fldX + 16 + cwd + 2;
+    ctx.save(); ctx.strokeStyle = THEME.accent; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cxp, fldY + 10); ctx.lineTo(cxp, fldY + fldH - 10); ctx.stroke(); ctx.restore();
+  }
+  pushMhot(fldX, fldY, fldW, fldH, focusNameField);
+
+  // EFFECTS BAKED IN chips — lit if that stage was ON when bounced
+  label('EFFECTS BAKED IN', padX, dlgY + 278, { weight: 600, size: 9, spacing: 0.2, color: THEME.ink });
+  const chips = [['LOW-PASS', 'lowpass'], ['WAVESHAPER', 'waveshaper'], ['COMPRESSOR', 'compressor'], ['REVERB', 'reverb']];
+  const cgap = 10, cy0 = dlgY + 290, chH = 30, chW = (innerW - cgap * 3) / 4;
+  for (let i = 0; i < chips.length; i++) {
+    const [txt, key] = chips[i];
+    const on = !!(p.config && p.config[key] && p.config[key].on);
+    const cxp = padX + i * (chW + cgap);
+    panel(cxp, cy0, chW, chH, 7, on ? 'rgba(42,212,200,0.12)' : '#26292e', on ? 'rgba(42,212,200,0.05)' : '#1d2024',
+      { border: on ? 'rgba(42,212,200,0.45)' : '#33373e' });
+    led(cxp + 14, cy0 + chH / 2, 7, THEME.accent, on);
+    label(txt, cxp + 26, cy0 + chH / 2, { weight: 700, size: 10, spacing: 0.04, color: on ? '#dffefb' : '#6b7178', baseline: 'middle' });
+  }
+
+  // actions: DISCARD · RE-RECORD (left)  |  EXPORT WAV · ADD TO LIBRARY (right)
+  const aH = 46, aY = dlgY + dlgH - 28 - aH;
+  const rightEdge = dlgX + dlgW - 28;
+
+  const disW = 112;
+  W.button(padX, aY, disW, aH, '', {});
+  label('DISCARD', padX + disW / 2, aY + aH / 2, { weight: 700, size: 13, spacing: 0.06, color: '#c98e8e', align: 'center', baseline: 'middle' });
+  pushMhot(padX, aY, disW, aH, closeModal);
+
+  const rerX = padX + disW + 10, rerW = 150;
+  W.button(rerX, aY, rerW, aH, '', {});
+  W.icon('loop', rerX + 24, aY + aH / 2, 15, THEME.ink);
+  label('RE-RECORD', rerX + rerW / 2 + 12, aY + aH / 2, { weight: 700, size: 13, spacing: 0.06, color: THEME.ink, align: 'center', baseline: 'middle' });
+  pushMhot(rerX, aY, rerW, aH, () => { closeModal(); rearmBounce(); });
+
+  // primary: add to library (rightmost, teal)
+  const addW = 190, addX = rightEdge - addW;
+  panel(addX, aY, addW, aH, 9, '#1f6f68', '#23262b', { dropShadow: true });
+  W.icon('plus', addX + 26, aY + aH / 2, 14, '#eafffb');
+  label('ADD TO LIBRARY', addX + addW / 2 + 10, aY + aH / 2, { weight: 700, size: 13, spacing: 0.06, color: '#eafffb', align: 'center', baseline: 'middle' });
+  pushMhot(addX, aY, addW, aH, modalConfirm);
+
+  // secondary: export the WAV (download only; leaves the dialog open)
+  const expW = 148, expX = addX - 10 - expW;
+  W.button(expX, aY, expW, aH, '', {});
+  W.icon('arrow', expX + 22, aY + aH / 2, 13, THEME.accent);
+  label('EXPORT WAV', expX + expW / 2 + 10, aY + aH / 2, { weight: 700, size: 13, spacing: 0.06, color: THEME.accent, align: 'center', baseline: 'middle' });
+  pushMhot(expX, aY, expW, aH, exportBounceWav);
 }
