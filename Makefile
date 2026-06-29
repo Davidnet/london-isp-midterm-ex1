@@ -43,8 +43,8 @@ SRC := $(shell find src -type f -name '*.js')
 
 build: clean
 	@echo ">> building $(OUT)/"
-	@for f in $(LIBS) $(FONTS) $(ASSETS) $(SRC); do \
-		mkdir -p "$(OUT)/$$(dirname $$f)"; \
+	@set -e; for f in $(LIBS) $(FONTS) $(ASSETS) $(SRC); do \
+		mkdir -p "$(OUT)/$$(dirname "$$f")"; \
 		cp "$$f" "$(OUT)/$$f"; \
 	done
 	@# Copy index.html, rewriting the two library <script> tags to the min builds.
@@ -52,7 +52,7 @@ build: clean
 		-e 's#libraries/p5/p5.js#libraries/p5/p5.min.js#' \
 		-e 's#libraries/p5/addons/p5.sound.js#libraries/p5/addons/p5.sound.min.js#' \
 		index.html > "$(OUT)/index.html"
-	@echo ">> done. $(OUT)/ size: $$(du -sh $(OUT) | cut -f1)"
+	@echo ">> done. $(OUT)/ size: $$(du -sh $(OUT) | awk '{print $$1}')"
 
 serve: build
 	@cd $(OUT) && python3 -m http.server
