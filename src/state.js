@@ -52,7 +52,9 @@ const PARAM_RANGES = {
     ol:       { min: 0, max: 1 },
   },
   master: {
-    volume: { min: 0, max: 1 },
+    // Linear gain under the hood, but the knob tapers in dB (−60…0 dBFS) so equal
+    // rotation = equal dB change — the way a real volume control feels.
+    volume: { min: 0, max: 1, db: true },
   },
 };
 
