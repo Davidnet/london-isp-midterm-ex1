@@ -86,7 +86,7 @@ function ascii(bytes, start, length) {
 }
 
 describe('Store.encodeWav', () => {
-  it('matches the master encoder byte-for-byte for interleaved stereo PCM', async () => {
+  it('matches the early encoder implementation byte-for-byte for interleaved stereo PCM', async () => {
     const Store = loadStore();
     const audioBuffer = makeAudioBuffer(
       [new Float32Array([-1.2, -1, -0.5, 0, 0.5, 1, 1.2]), new Float32Array([1.2, 1, 0.5, 0, -0.5, -1, -1.2])],
@@ -117,5 +117,20 @@ describe('Store.encodeWav', () => {
     expect(view.getUint16(34, true)).toBe(16);
     expect(ascii(bytes, 36, 4)).toBe('data');
     expect(view.getUint32(40, true)).toBe(6);
+  });
+
+  it('clips and scales PCM samples explicitly', async () => {
+    const Store = loadStore();
+    const audioBuffer = makeAudioBuffer([new Float32Array([-1.2, -1, -0.5, 0, 0.5, 1, 1.2])]);
+    const bytes = await blobBytes(Store.encodeWav(audioBuffer));
+    const view = new DataView(bytes.buffer);
+
+    expect(view.getInt16(44, true)).toBe(-32768);
+    expect(view.getInt16(46, true)).toBe(-32768);
+    expect(view.getInt16(48, true)).toBe(-16384);
+    expect(view.getInt16(50, true)).toBe(0);
+    expect(view.getInt16(52, true)).toBe(16383);
+    expect(view.getInt16(54, true)).toBe(32767);
+    expect(view.getInt16(56, true)).toBe(32767);
   });
 });
