@@ -10,12 +10,12 @@
  */
 
 const THEME = {
-  accent: '#2ad4c8', // teal (default; cosmetic-swappable later)
+  accent: '#2ad4c8',                 // teal (default; cosmetic-swappable later)
   // Panel finishes (default Graphite).
   finishes: {
     Graphite: { a: '#3a3f47', b: '#2b2f35', ink: '#b3b9c1' },
-    Cream: { a: '#e9e3d6', b: '#d9d2c2', ink: '#4d473c' },
-    Black: { a: '#282b30', b: '#1a1c20', ink: '#c4c9d0' },
+    Cream:    { a: '#e9e3d6', b: '#d9d2c2', ink: '#4d473c' },
+    Black:    { a: '#282b30', b: '#1a1c20', ink: '#c4c9d0' },
   },
   finish: 'Graphite',
   screws: true,
@@ -30,15 +30,9 @@ const THEME = {
   fonts: { hank: {}, mono: {} },
 
   // Convenience getters
-  get ink() {
-    return this.finishes[this.finish].ink;
-  },
-  get plateA() {
-    return this.finishes[this.finish].a;
-  },
-  get plateB() {
-    return this.finishes[this.finish].b;
-  },
+  get ink() { return this.finishes[this.finish].ink; },
+  get plateA() { return this.finishes[this.finish].a; },
+  get plateB() { return this.finishes[this.finish].b; },
 };
 
 /* ---------------- path + gradient helpers ---------------- */
@@ -166,14 +160,8 @@ function screw(cx, cy, d, angle) {
  */
 function label(txt, x, y, opts = {}) {
   const {
-    role = 'hank',
-    weight = 600,
-    size = 11,
-    color = THEME.ink,
-    spacing = 0,
-    align = 'left',
-    baseline = 'alphabetic',
-    upper = false,
+    role = 'hank', weight = 600, size = 11, color = THEME.ink,
+    spacing = 0, align = 'left', baseline = 'alphabetic', upper = false,
   } = opts;
 
   const fam = THEME.fonts[role];
@@ -182,14 +170,12 @@ function label(txt, x, y, opts = {}) {
   textSize(size);
   fill(color);
   noStroke();
-  textAlign(
-    align === 'center' ? CENTER : align === 'right' ? RIGHT : LEFT,
-    baseline === 'middle' ? CENTER : baseline === 'top' ? TOP : BASELINE
-  );
+  textAlign(align === 'center' ? CENTER : align === 'right' ? RIGHT : LEFT,
+            baseline === 'middle' ? CENTER : baseline === 'top' ? TOP : BASELINE);
 
   const ctx = drawingContext;
   const hadSpacing = 'letterSpacing' in ctx;
-  if (hadSpacing && spacing) ctx.letterSpacing = spacing + 'em';
+  if (hadSpacing && spacing) ctx.letterSpacing = (spacing) + 'em';
   text(upper ? String(txt).toUpperCase() : txt, x, y);
   if (hadSpacing && spacing) ctx.letterSpacing = '0em';
 }
