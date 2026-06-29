@@ -4,16 +4,6 @@ import vm from 'node:vm';
 export function createBrowserGlobalContext(globals = {}) {
   return vm.createContext({
     console,
-    Math,
-    JSON,
-    Number,
-    String,
-    Boolean,
-    Array,
-    Object,
-    RegExp,
-    Date,
-    isFinite,
     ...globals,
   });
 }
