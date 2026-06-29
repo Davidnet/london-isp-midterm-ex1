@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <!--
   test-harness.html — THROWAWAY Phase 1 driver (not the real UI).
 
@@ -11,263 +11,385 @@
       python3 -m http.server   →   http://localhost:8000/test-harness.html
 -->
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>FX Processor — Phase 1 Audio Harness</title>
-  <style>
-    body { margin: 0; background: #15171b; color: #cdd2d8;
-           font-family: monospace; padding: 12px; }
-    h1 { font-size: 14px; color: #2ad4c8; letter-spacing: .12em; text-transform: uppercase; }
-    .row { margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .row label { font-size: 11px; color: #8a9098; min-width: 120px; }
-    button { background: #2b2f35; color: #cdd2d8; border: 1px solid #444;
-             border-radius: 6px; padding: 5px 9px; font-family: monospace; cursor: pointer; }
-    button:hover { background: #3a3f47; }
-    button.on { background: #2ad4c8; color: #08130f; border-color: #2ad4c8; }
-    .hint { font-size: 11px; color: #6a7078; }
-  </style>
-</head>
-<body>
-  <h1>FX Processor · Phase 1 Audio Harness</h1>
-  <p class="hint">1) START AUDIO &nbsp;2) load a sample &nbsp;3) PLAY &nbsp;4) toggle bypass / drag sliders &nbsp;5) BOUNCE 4s → WAV download &nbsp;6) RUN SELF-TEST (objective bypass/leak check)</p>
-  <pre id="report" style="background:#08130f;border:1px solid rgba(42,212,200,.2);border-radius:6px;
-       padding:8px;color:#9fe;white-space:pre-wrap;font-size:12px;min-height:18px;margin:8px 0;"></pre>
-
-  <!-- p5 + p5.sound (local, version-pinned) -->
-  <script src="libraries/p5/p5.js"></script>
-  <script src="libraries/p5/addons/p5.sound.js"></script>
-  <!-- app modules -->
-  <script src="src/state.js"></script>
-  <script src="src/audioEngine.js"></script>
-
-  <script>
-    let samples = {};          // name -> p5.SoundFile
-    const SAMPLE_FILES = ['sample1','sample2','sample3','sample4','sample5','sample6'];
-    let ui = {};               // holds dom refs for status text
-
-    function preload() {
-      // Load all bundled samples up front (small enough for the harness).
-      for (const name of SAMPLE_FILES) {
-        samples[name] = loadSound('assets/' + name + '.wav');
+  <head>
+    <meta charset="utf-8" />
+    <title>FX Processor — Phase 1 Audio Harness</title>
+    <style>
+      body {
+        margin: 0;
+        background: #15171b;
+        color: #cdd2d8;
+        font-family: monospace;
+        padding: 12px;
       }
-    }
+      h1 {
+        font-size: 14px;
+        color: #2ad4c8;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .row {
+        margin: 6px 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+      .row label {
+        font-size: 11px;
+        color: #8a9098;
+        min-width: 120px;
+      }
+      button {
+        background: #2b2f35;
+        color: #cdd2d8;
+        border: 1px solid #444;
+        border-radius: 6px;
+        padding: 5px 9px;
+        font-family: monospace;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #3a3f47;
+      }
+      button.on {
+        background: #2ad4c8;
+        color: #08130f;
+        border-color: #2ad4c8;
+      }
+      .hint {
+        font-size: 11px;
+        color: #6a7078;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>FX Processor · Phase 1 Audio Harness</h1>
+    <p class="hint">
+      1) START AUDIO &nbsp;2) load a sample &nbsp;3) PLAY &nbsp;4) toggle bypass / drag sliders
+      &nbsp;5) BOUNCE 4s → WAV download &nbsp;6) RUN SELF-TEST (objective bypass/leak check)
+    </p>
+    <pre
+      id="report"
+      style="
+        background: #08130f;
+        border: 1px solid rgba(42, 212, 200, 0.2);
+        border-radius: 6px;
+        padding: 8px;
+        color: #9fe;
+        white-space: pre-wrap;
+        font-size: 12px;
+        min-height: 18px;
+        margin: 8px 0;
+      "
+    ></pre>
 
-    function setup() {
-      createCanvas(720, 260);
-      noStroke();
-      buildControls();
-    }
+    <!-- p5 + p5.sound (local, version-pinned) -->
+    <script src="libraries/p5/p5.js"></script>
+    <script src="libraries/p5/addons/p5.sound.js"></script>
+    <!-- app modules -->
+    <script src="src/state.js"></script>
+    <script src="src/audioEngine.js"></script>
 
-    function buildControls() {
-      // --- audio start (required user gesture) + transport ---
-      let r1 = makeRow('Audio / transport:');
-      const startBtn = btn(r1, 'START AUDIO', () => { userStartAudio(); AudioEngine.init(); flash(startBtn); });
-      btn(r1, 'PLAY',  () => AudioEngine.play());
-      btn(r1, 'PAUSE', () => AudioEngine.pause());
-      btn(r1, 'STOP',  () => AudioEngine.stop());
-      const loopBtn = btn(r1, 'LOOP', () => { const on = AudioEngine.toggleLoop(); loopBtn.elt.classList.toggle('on', on); });
+    <script>
+      let samples = {}; // name -> p5.SoundFile
+      const SAMPLE_FILES = ['sample1', 'sample2', 'sample3', 'sample4', 'sample5', 'sample6'];
+      let ui = {}; // holds dom refs for status text
 
-      // --- source selection ---
-      let r2 = makeRow('Load source:');
-      for (const name of SAMPLE_FILES) {
-        btn(r2, name, () => { AudioEngine.loadSource(samples[name]); markActive(r2, name); });
+      function preload() {
+        // Load all bundled samples up front (small enough for the harness).
+        for (const name of SAMPLE_FILES) {
+          samples[name] = loadSound('assets/' + name + '.wav');
+        }
       }
 
-      // --- per-stage bypass toggles ---
-      let r3 = makeRow('Bypass (toggle):');
-      for (const stage of AppState.FX_STAGES) {
-        const b = btn(r3, stage.toUpperCase(), () => {
-          const cfg = AppState.config[stage];
-          AudioEngine.setBypass(stage, !cfg.on);
-          b.elt.classList.toggle('on', cfg.on);
+      function setup() {
+        createCanvas(720, 260);
+        noStroke();
+        buildControls();
+      }
+
+      function buildControls() {
+        // --- audio start (required user gesture) + transport ---
+        let r1 = makeRow('Audio / transport:');
+        const startBtn = btn(r1, 'START AUDIO', () => {
+          userStartAudio();
+          AudioEngine.init();
+          flash(startBtn);
         });
-        if (AppState.config[stage].on) b.elt.classList.add('on');
+        btn(r1, 'PLAY', () => AudioEngine.play());
+        btn(r1, 'PAUSE', () => AudioEngine.pause());
+        btn(r1, 'STOP', () => AudioEngine.stop());
+        const loopBtn = btn(r1, 'LOOP', () => {
+          const on = AudioEngine.toggleLoop();
+          loopBtn.elt.classList.toggle('on', on);
+        });
+
+        // --- source selection ---
+        let r2 = makeRow('Load source:');
+        for (const name of SAMPLE_FILES) {
+          btn(r2, name, () => {
+            AudioEngine.loadSource(samples[name]);
+            markActive(r2, name);
+          });
+        }
+
+        // --- per-stage bypass toggles ---
+        let r3 = makeRow('Bypass (toggle):');
+        for (const stage of AppState.FX_STAGES) {
+          const b = btn(r3, stage.toUpperCase(), () => {
+            const cfg = AppState.config[stage];
+            AudioEngine.setBypass(stage, !cfg.on);
+            b.elt.classList.toggle('on', cfg.on);
+          });
+          if (AppState.config[stage].on) b.elt.classList.add('on');
+        }
+
+        // --- a few representative param sliders ---
+        slider('LowPass cutoff (Hz)', 20, 20000, AppState.config.lowpass.cutoff, 1, (v) =>
+          AudioEngine.setParam('lowpass', 'cutoff', v)
+        );
+        slider('Waveshaper amount', 0, 1, AppState.config.waveshaper.amount, 0.01, (v) =>
+          AudioEngine.setParam('waveshaper', 'amount', v)
+        );
+        slider('Reverb dry/wet', 0, 1, AppState.config.reverb.dw, 0.01, (v) =>
+          AudioEngine.setParam('reverb', 'dw', v)
+        );
+        slider('Master volume', 0, 1, AppState.config.master.volume, 0.01, (v) =>
+          AudioEngine.setParam('master', 'volume', v)
+        );
+
+        // --- bounce ---
+        let r4 = makeRow('Bounce (processed → WAV):');
+        btn(r4, 'BOUNCE 4s', () => {
+          AudioEngine.startBounce(true);
+          setTimeout(() => {
+            AudioEngine.stopBounce((buf) => AudioEngine.saveBounce(buf, 'bounce-test'));
+          }, 4000);
+        });
+
+        // --- objective diagnostics ---
+        let r5 = makeRow('Diagnostics:');
+        const stBtn = btn(r5, 'RUN SELF-TEST', () => runSelfTest(stBtn));
       }
 
-      // --- a few representative param sliders ---
-      slider('LowPass cutoff (Hz)', 20, 20000, AppState.config.lowpass.cutoff, 1,
-        (v) => AudioEngine.setParam('lowpass', 'cutoff', v));
-      slider('Waveshaper amount', 0, 1, AppState.config.waveshaper.amount, 0.01,
-        (v) => AudioEngine.setParam('waveshaper', 'amount', v));
-      slider('Reverb dry/wet', 0, 1, AppState.config.reverb.dw, 0.01,
-        (v) => AudioEngine.setParam('reverb', 'dw', v));
-      slider('Master volume', 0, 1, AppState.config.master.volume, 0.01,
-        (v) => AudioEngine.setParam('master', 'volume', v));
+      /* ------------------------------------------------------------------ *
+       * Objective bypass / leak self-test.
+       *
+       * Drives the chain with STATIONARY white noise (not the music) so any
+       * spectral difference is caused by the effect alone, not changing content.
+       * For each FX stage: compares OUT spectrum (stage ON) vs (all bypassed) —
+       * a real change proves bypass matters. For the compressor it additionally
+       * compares BYPASS vs a mathematically transparent 1:1/threshold-0 setting:
+       * if those two match, the bypass path is clean (no leak at drywet 0).
+       * ------------------------------------------------------------------ */
+      const inOf = (n) => (n && n.input ? n.input : n);
+      const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
 
-      // --- bounce ---
-      let r4 = makeRow('Bounce (processed → WAV):');
-      btn(r4, 'BOUNCE 4s', () => {
-        AudioEngine.startBounce(true);
-        setTimeout(() => {
-          AudioEngine.stopBounce((buf) => AudioEngine.saveBounce(buf, 'bounce-test'));
-        }, 4000);
-      });
-
-      // --- objective diagnostics ---
-      let r5 = makeRow('Diagnostics:');
-      const stBtn = btn(r5, 'RUN SELF-TEST', () => runSelfTest(stBtn));
-    }
-
-    /* ------------------------------------------------------------------ *
-     * Objective bypass / leak self-test.
-     *
-     * Drives the chain with STATIONARY white noise (not the music) so any
-     * spectral difference is caused by the effect alone, not changing content.
-     * For each FX stage: compares OUT spectrum (stage ON) vs (all bypassed) —
-     * a real change proves bypass matters. For the compressor it additionally
-     * compares BYPASS vs a mathematically transparent 1:1/threshold-0 setting:
-     * if those two match, the bypass path is clean (no leak at drywet 0).
-     * ------------------------------------------------------------------ */
-    const inOf = (n) => (n && n.input) ? n.input : n;
-    const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
-
-    async function captureAvg(frames = 40, settle = 15) {
-      const acc = new Array(1024).fill(0);
-      let lvl = 0, c = 0;
-      for (let i = 0; i < settle; i++) await nextFrame();          // let tails/levels settle
-      for (let i = 0; i < frames; i++) {
-        await nextFrame();
-        const s = AudioEngine.analyzeOut();
-        for (let j = 0; j < 1024; j++) acc[j] += s[j] || 0;
-        lvl += AudioEngine.level();
-        c++;
+      async function captureAvg(frames = 40, settle = 15) {
+        const acc = new Array(1024).fill(0);
+        let lvl = 0,
+          c = 0;
+        for (let i = 0; i < settle; i++) await nextFrame(); // let tails/levels settle
+        for (let i = 0; i < frames; i++) {
+          await nextFrame();
+          const s = AudioEngine.analyzeOut();
+          for (let j = 0; j < 1024; j++) acc[j] += s[j] || 0;
+          lvl += AudioEngine.level();
+          c++;
+        }
+        return { spec: acc.map((v) => v / c), level: lvl / c };
       }
-      return { spec: acc.map((v) => v / c), level: lvl / c };
-    }
-    // L1 relative spectral difference, as a %.
-    function relSpecDiff(a, b) {
-      let num = 0, den = 0;
-      for (let i = 0; i < a.length; i++) { num += Math.abs(a[i] - b[i]); den += b[i]; }
-      return den ? (num / den) * 100 : 0;
-    }
-    function dbd(l1, l2) {
-      if (!l2 || l2 < 1e-6) return 'n/a';
-      return (20 * Math.log10(l1 / l2)).toFixed(1) + ' dB';
-    }
-    function showReport(txt) { document.getElementById('report').textContent = txt; }
-
-    async function runSelfTest(button) {
-      if (!AudioEngine.started || !AudioEngine.source) {
-        showReport('Start audio and load a source first.');
-        return;
+      // L1 relative spectral difference, as a %.
+      function relSpecDiff(a, b) {
+        let num = 0,
+          den = 0;
+        for (let i = 0; i < a.length; i++) {
+          num += Math.abs(a[i] - b[i]);
+          den += b[i];
+        }
+        return den ? (num / den) * 100 : 0;
       }
-      button.elt.disabled = true;
-      showReport('Running self-test (white-noise probe)…');
-      const saved = JSON.parse(JSON.stringify(AppState.config));
-
-      // Pause the music; drive the chain head with stationary white noise.
-      AudioEngine.pause();
-      const noise = new p5.Noise('white');
-      noise.amp(0.5);
-      noise.disconnect();
-      noise.connect(inOf(AudioEngine.nodes.lowpass));
-      noise.start();
-
-      const setStage = (s, on) => { AppState.config[s].on = on; AudioEngine.applyStage(s); };
-      const allBypass = () => {
-        AppState.FX_STAGES.forEach((s) => setStage(s, false));
-        AppState.config.master.volume = 0.8; AudioEngine.applyMaster();
-      };
-
-      const lines = [];
-      allBypass();
-      const base = await captureAvg();   // everything bypassed = transparent baseline
-
-      // 1) Each stage: ON vs bypass → does bypass change the sound?
-      for (const s of ['lowpass', 'waveshaper', 'reverb']) {
-        setStage(s, true);
-        const on = await captureAvg();
-        const d = relSpecDiff(on.spec, base.spec);
-        lines.push(`${s.toUpperCase().padEnd(10)} ON vs BYPASS · spectrum Δ ${d.toFixed(0).padStart(3)}% · level ${dbd(on.level, base.level)}  → ${d > 12 ? 'changes sound ✓' : 'little change'}`);
-        setStage(s, false);
+      function dbd(l1, l2) {
+        if (!l2 || l2 < 1e-6) return 'n/a';
+        return (20 * Math.log10(l1 / l2)).toFixed(1) + ' dB';
+      }
+      function showReport(txt) {
+        document.getElementById('report').textContent = txt;
       }
 
-      // 2) Compressor leak: bypass (base) vs a transparent 1:1 / threshold-0 comp.
-      const c = AppState.config.compressor;
-      Object.assign(c, { on: true, ratio: 1, threshold: 0, knee: 0, attack: 0.003, release: 0.05, dw: 1, ol: 1 });
-      AudioEngine.applyStage('compressor');
-      const transp = await captureAvg();
-      const leakSpec = relSpecDiff(transp.spec, base.spec);
-      const leakDb = dbd(transp.level, base.level);
-      const clean = leakSpec < 6 && Math.abs(parseFloat(leakDb) || 0) < 1.0;
-      lines.push(`COMPRESSOR leak (bypass vs 1:1 passthru) · spectrum Δ ${leakSpec.toFixed(1)}% · level ${leakDb}  → ${clean ? 'CLEAN, no leak ✓' : 'LEAK ⚠'}`);
+      async function runSelfTest(button) {
+        if (!AudioEngine.started || !AudioEngine.source) {
+          showReport('Start audio and load a source first.');
+          return;
+        }
+        button.elt.disabled = true;
+        showReport('Running self-test (white-noise probe)…');
+        const saved = JSON.parse(JSON.stringify(AppState.config));
 
-      // 3) Compressor active vs bypass → confirm it actually does something.
-      Object.assign(c, { ratio: 4, threshold: -24, knee: 6, attack: 0.012, release: 0.18, dw: 1, ol: 0.5 });
-      AudioEngine.applyStage('compressor');
-      const act = await captureAvg();
-      lines.push(`COMPRESSOR active vs bypass · level ${dbd(act.level, base.level)} (gain change expected)`);
+        // Pause the music; drive the chain head with stationary white noise.
+        AudioEngine.pause();
+        const noise = new p5.Noise('white');
+        noise.amp(0.5);
+        noise.disconnect();
+        noise.connect(inOf(AudioEngine.nodes.lowpass));
+        noise.start();
 
-      // Cleanup: stop noise, restore the saved config.
-      noise.stop();
-      noise.disconnect();
-      if (noise.dispose) noise.dispose();
-      AppState.config = JSON.parse(JSON.stringify(saved));
-      AudioEngine.applyConfig();
+        const setStage = (s, on) => {
+          AppState.config[s].on = on;
+          AudioEngine.applyStage(s);
+        };
+        const allBypass = () => {
+          AppState.FX_STAGES.forEach((s) => setStage(s, false));
+          AppState.config.master.volume = 0.8;
+          AudioEngine.applyMaster();
+        };
 
-      const report = 'SELF-TEST RESULTS\n' + lines.join('\n');
-      console.log(report);
-      showReport(report);
-      button.elt.disabled = false;
-    }
+        const lines = [];
+        allBypass();
+        const base = await captureAvg(); // everything bypassed = transparent baseline
 
-    /* ---- tiny dom helpers ---- */
-    function makeRow(labelText) {
-      const row = createDiv().class('row');
-      createSpan(labelText).parent(row).style('color', '#8a9098')
-        .style('font-size', '11px').style('min-width', '160px');
-      return row;
-    }
-    function btn(row, label, onClick) {
-      const b = createButton(label).parent(row);
-      b.mousePressed(onClick);
-      return b;
-    }
-    function slider(label, min, max, val, step, onInput) {
-      const row = makeRow(label + ':');
-      const s = createSlider(min, max, val, step).parent(row).style('width', '260px');
-      const out = createSpan(' ' + val).parent(row).style('color', '#2ad4c8').style('font-size', '11px');
-      s.input(() => { const v = +s.value(); out.html(' ' + v); onInput(v); });
-    }
-    function flash(b) { b.elt.classList.add('on'); }
-    function markActive(row, name) {
-      row.elt.querySelectorAll('button').forEach((el) =>
-        el.classList.toggle('on', el.textContent === name));
-    }
+        // 1) Each stage: ON vs bypass → does bypass change the sound?
+        for (const s of ['lowpass', 'waveshaper', 'reverb']) {
+          setStage(s, true);
+          const on = await captureAvg();
+          const d = relSpecDiff(on.spec, base.spec);
+          lines.push(
+            `${s.toUpperCase().padEnd(10)} ON vs BYPASS · spectrum Δ ${d.toFixed(0).padStart(3)}% · level ${dbd(on.level, base.level)}  → ${d > 12 ? 'changes sound ✓' : 'little change'}`
+          );
+          setStage(s, false);
+        }
 
-    /* ---- draw both spectra + VU so we can SEE the analyzers run ---- */
-    function draw() {
-      background(8, 19, 15);
-      const half = width / 2;
+        // 2) Compressor leak: bypass (base) vs a transparent 1:1 / threshold-0 comp.
+        const c = AppState.config.compressor;
+        Object.assign(c, {
+          on: true,
+          ratio: 1,
+          threshold: 0,
+          knee: 0,
+          attack: 0.003,
+          release: 0.05,
+          dw: 1,
+          ol: 1,
+        });
+        AudioEngine.applyStage('compressor');
+        const transp = await captureAvg();
+        const leakSpec = relSpecDiff(transp.spec, base.spec);
+        const leakDb = dbd(transp.level, base.level);
+        const clean = leakSpec < 6 && Math.abs(parseFloat(leakDb) || 0) < 1.0;
+        lines.push(
+          `COMPRESSOR leak (bypass vs 1:1 passthru) · spectrum Δ ${leakSpec.toFixed(1)}% · level ${leakDb}  → ${clean ? 'CLEAN, no leak ✓' : 'LEAK ⚠'}`
+        );
 
-      drawSpectrum(AudioEngine.analyzeIn(),  0,    half, 'IN  (pre-FX)');
-      drawSpectrum(AudioEngine.analyzeOut(), half, half, 'OUT (post-FX)');
+        // 3) Compressor active vs bypass → confirm it actually does something.
+        Object.assign(c, {
+          ratio: 4,
+          threshold: -24,
+          knee: 6,
+          attack: 0.012,
+          release: 0.18,
+          dw: 1,
+          ol: 0.5,
+        });
+        AudioEngine.applyStage('compressor');
+        const act = await captureAvg();
+        lines.push(
+          `COMPRESSOR active vs bypass · level ${dbd(act.level, base.level)} (gain change expected)`
+        );
 
-      // divider
-      stroke(42, 212, 200, 60); line(half, 0, half, height - 30); noStroke();
+        // Cleanup: stop noise, restore the saved config.
+        noise.stop();
+        noise.disconnect();
+        if (noise.dispose) noise.dispose();
+        AppState.config = JSON.parse(JSON.stringify(saved));
+        AudioEngine.applyConfig();
 
-      // VU readout
-      const lvl = AudioEngine.level();
-      fill(42, 212, 200);
-      rect(8, height - 22, map(lvl, 0, 0.5, 0, width - 16, true), 14);
-      fill(180);
-      text('master level: ' + lvl.toFixed(3) +
-           '   playing: ' + AppState.isPlaying +
-           '   rec: ' + AudioEngine.isRecording(), 8, height - 26);
-    }
+        const report = 'SELF-TEST RESULTS\n' + lines.join('\n');
+        console.log(report);
+        showReport(report);
+        button.elt.disabled = false;
+      }
 
-    function drawSpectrum(spec, x0, w, label) {
-      fill(120, 200, 190); text(label, x0 + 8, 14);
-      if (!spec || spec.length === 0) return;
-      const bars = 32;
-      const bw = w / bars;
-      for (let i = 0; i < bars; i++) {
-        const idx = floor(map(i, 0, bars, 0, spec.length));
-        const h = map(spec[idx], 0, 255, 0, height - 50);
+      /* ---- tiny dom helpers ---- */
+      function makeRow(labelText) {
+        const row = createDiv().class('row');
+        createSpan(labelText)
+          .parent(row)
+          .style('color', '#8a9098')
+          .style('font-size', '11px')
+          .style('min-width', '160px');
+        return row;
+      }
+      function btn(row, label, onClick) {
+        const b = createButton(label).parent(row);
+        b.mousePressed(onClick);
+        return b;
+      }
+      function slider(label, min, max, val, step, onInput) {
+        const row = makeRow(label + ':');
+        const s = createSlider(min, max, val, step).parent(row).style('width', '260px');
+        const out = createSpan(' ' + val)
+          .parent(row)
+          .style('color', '#2ad4c8')
+          .style('font-size', '11px');
+        s.input(() => {
+          const v = +s.value();
+          out.html(' ' + v);
+          onInput(v);
+        });
+      }
+      function flash(b) {
+        b.elt.classList.add('on');
+      }
+      function markActive(row, name) {
+        row.elt
+          .querySelectorAll('button')
+          .forEach((el) => el.classList.toggle('on', el.textContent === name));
+      }
+
+      /* ---- draw both spectra + VU so we can SEE the analyzers run ---- */
+      function draw() {
+        background(8, 19, 15);
+        const half = width / 2;
+
+        drawSpectrum(AudioEngine.analyzeIn(), 0, half, 'IN  (pre-FX)');
+        drawSpectrum(AudioEngine.analyzeOut(), half, half, 'OUT (post-FX)');
+
+        // divider
+        stroke(42, 212, 200, 60);
+        line(half, 0, half, height - 30);
+        noStroke();
+
+        // VU readout
+        const lvl = AudioEngine.level();
         fill(42, 212, 200);
-        rect(x0 + i * bw + 1, height - 30 - h, bw - 2, h);
+        rect(8, height - 22, map(lvl, 0, 0.5, 0, width - 16, true), 14);
+        fill(180);
+        text(
+          'master level: ' +
+            lvl.toFixed(3) +
+            '   playing: ' +
+            AppState.isPlaying +
+            '   rec: ' +
+            AudioEngine.isRecording(),
+          8,
+          height - 26
+        );
       }
-    }
-  </script>
-</body>
+
+      function drawSpectrum(spec, x0, w, label) {
+        fill(120, 200, 190);
+        text(label, x0 + 8, 14);
+        if (!spec || spec.length === 0) return;
+        const bars = 32;
+        const bw = w / bars;
+        for (let i = 0; i < bars; i++) {
+          const idx = floor(map(i, 0, bars, 0, spec.length));
+          const h = map(spec[idx], 0, 255, 0, height - 50);
+          fill(42, 212, 200);
+          rect(x0 + i * bw + 1, height - 30 - h, bw - 2, h);
+        }
+      }
+    </script>
+  </body>
 </html>
