@@ -7,7 +7,7 @@
     "check": "npm run lint && npm run test && npm run format:check",
     "lint": "npm run lint:js && npm run lint:html",
     "lint:fix": "npm run lint:js -- --fix && npm run format",
-    "lint:js": "eslint \"src/**/*.js\"",
+    "lint:js": "eslint \"src/**/*.js\" \"tests/**/*.js\"",
     "lint:html": "htmlhint \"*.html\"",
     "test": "vitest run",
     "format": "prettier --write \"*.html\" \"src/**/*.js\" \"tests/**/*.js\"",
