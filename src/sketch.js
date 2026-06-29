@@ -567,12 +567,25 @@ function transport(action) {
   else if (action === 'jump') AudioEngine.jumpToStart();
 }
 
+// Snapshot of the effect config at the moment a bounce starts — these are the
+// effects actually printed into the file, shown as chips in the bounce dialog.
+let bounceConfigSnapshot = null;
+
 function toggleBounce() {
   if (AppState.recMode === 'bounce') {
-    AudioEngine.stopBounce((buf) => AudioEngine.saveBounce(buf, 'bounce-01'));
+    // stop → the recorder delivers the buffer async, then we open the save dialog
+    AudioEngine.stopBounce((buf) => openBounceModal(buf, bounceConfigSnapshot));
+    AudioEngine.stop();   // halt the source so it doesn't mix under the bounce preview
   } else {
+    bounceConfigSnapshot = deepClone(AppState.config);
     AudioEngine.startBounce(true);
   }
+}
+
+// RE-RECORD from the bounce dialog: re-arm and capture again from the top.
+function rearmBounce() {
+  bounceConfigSnapshot = deepClone(AppState.config);
+  AudioEngine.startBounce(true);
 }
 
 /* ---------------- library actions (Slice 3a, in-memory) ---------------- */
