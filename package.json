@@ -4,17 +4,19 @@
   "private": true,
   "description": "Static p5.js FX processor app.",
   "scripts": {
-    "check": "npm run lint && npm run format:check",
+    "check": "npm run lint && npm run test && npm run format:check",
     "lint": "npm run lint:js && npm run lint:html",
     "lint:fix": "npm run lint:js -- --fix && npm run format",
     "lint:js": "eslint \"src/**/*.js\"",
     "lint:html": "htmlhint \"*.html\"",
-    "format": "prettier --write \"*.html\" \"src/**/*.js\"",
-    "format:check": "prettier --check \"*.html\" \"src/**/*.js\""
+    "test": "vitest run",
+    "format": "prettier --write \"*.html\" \"src/**/*.js\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"*.html\" \"src/**/*.js\" \"tests/**/*.js\""
   },
   "devDependencies": {
     "eslint": "^9.29.0",
     "htmlhint": "^1.5.1",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "vitest": "^4.1.9"
   }
 }
