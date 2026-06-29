@@ -6,10 +6,6 @@ function loadStore() {
   const source = readFileSync(new URL('../src/persistence.js', import.meta.url), 'utf8');
   const context = vm.createContext({
     Blob,
-    DataView,
-    ArrayBuffer,
-    JSON,
-    Promise,
     console,
     indexedDB: {},
     localStorage: {},
