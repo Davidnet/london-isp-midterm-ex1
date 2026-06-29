@@ -39,6 +39,25 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+  seedLibrary();
+}
+
+// Seed the library with the bundled samples as dry sources (no effect config).
+// Persisted/imported/bounced items get merged in later (Slice 3d).
+function seedLibrary() {
+  if (AppState.library.length) return;
+  for (let i = 0; i < samples.length; i++) {
+    AppState.library.push(makeLibraryItem({
+      id: 'sample' + (i + 1), name: 'Sound ' + (i + 1),
+      type: 'file', audio: samples[i], config: null,
+    }));
+  }
+}
+
+// Empty-state action: wipe the library and re-add the bundled default sounds.
+function restoreLibrary() {
+  AppState.library = [];
+  seedLibrary();
 }
 
 function windowResized() { resizeCanvas(windowWidth, windowHeight); }
@@ -341,25 +360,60 @@ function drawEditor(x, y, w, h) {
   pushHot(ex + foW + 9, foY, foW, 38, savePreset);
 }
 
-/* ---------------- library (Slice 1: visual dock; interactions in Slice 3) ---------------- */
+/* ---------------- library (Slice 3a: data-driven dock) ---------------- */
+
+// Short "fx" summary line for a card: abbreviations of the stages left ON.
+const FX_ABBR = { lowpass: 'LPF', waveshaper: 'WSH', compressor: 'CMP', reverb: 'RVB' };
+function fxSummary(config) {
+  if (!config) return 'DRY SOURCE';
+  const on = FX_STAGES.filter((s) => config[s] && config[s].on).map((s) => FX_ABBR[s]);
+  return on.length ? on.join(' · ') : 'ALL BYPASSED';
+}
 
 function drawLibrary() {
   const y = 682, h = 134;
   panel(CL, y, CW, h, 11, 'rgba(0,0,0,0.22)', 'rgba(0,0,0,0.10)', { border: null, inset: true });
   label('SOUNDS LIBRARY', CL + 15, y + 18, { weight: 600, size: 10, spacing: 0.2, color: THEME.ink });
-  label('loaded from stored location · select to load into chain', CR - 15, y + 18, { role: 'mono', weight: 500, size: 9, spacing: 0.1, color: THEME.ink, align: 'right' });
+  label('select to load into chain · play / edit / clr / del', CR - 15, y + 18, { role: 'mono', weight: 500, size: 9, spacing: 0.1, color: THEME.ink, align: 'right' });
 
   const cardY = y + 30, cardH = h - 30 - 12;   // ≈92
   const addW = 132, gap = 10;
   const cardsW = CW - 30 - addW - gap;
-  const cardW = (cardsW - gap * 5) / 6;
-  for (let i = 0; i < 6; i++) {
+  const items = AppState.library;
+  const n = Math.max(1, items.length);
+  const cardW = (cardsW - gap * (n - 1)) / n;
+
+  if (items.length === 0) {
+    const mx = CL + 15 + cardsW / 2;
+    label('LIBRARY EMPTY', mx, cardY + cardH / 2 - 17,
+      { weight: 600, size: 11, spacing: 0.1, color: THEME.ink, align: 'center', baseline: 'middle' });
+    const bw = 210, bh = 30, bx = mx - bw / 2, by = cardY + cardH / 2 + 1;
+    W.button(bx, by, bw, bh, '', {});
+    label('RESTORE DEFAULT SOUNDS', mx, by + bh / 2,
+      { weight: 700, size: 11, spacing: 0.06, color: THEME.accent, align: 'center', baseline: 'middle' });
+    pushHot(bx, by, bw, bh, restoreLibrary);
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
     const cx = CL + 15 + i * (cardW + gap);
+    const isActive = AppState.activeId === item.id;
+
     panel(cx, cardY, cardW, cardH, 9, '#2c3036', '#212429', { dropShadow: true });
-    led(cx + 12, cardY + 17, 8, THEME.accent, true);
-    label('Sound ' + (i + 1), cx + 22, cardY + 17, { weight: 700, size: 14, color: '#e3e7eb', baseline: 'middle' });
-    label('LPF · RVB', cx + 12, cardY + 35, { role: 'mono', weight: 500, size: 9, color: THEME.accent });
-    // 2x2 action grid (taller buttons, clearer spacing)
+    if (isActive) {
+      const ctx = drawingContext; ctx.save();
+      ctx.strokeStyle = THEME.accent; ctx.lineWidth = 2; ctx.shadowColor = THEME.accent; ctx.shadowBlur = 12;
+      roundRectPath(ctx, cx - 2, cardY - 2, cardW + 4, cardH + 4, 11); ctx.stroke(); ctx.restore();
+    }
+    led(cx + 12, cardY + 17, 8, THEME.accent, isActive || !!item.config);
+    label(item.name, cx + 22, cardY + 17, { weight: 700, size: 14, color: '#e3e7eb', baseline: 'middle' });
+    label(fxSummary(item.config), cx + 12, cardY + 35, { role: 'mono', weight: 500, size: 9, color: item.config ? THEME.accent : '#6b7178' });
+
+    // whole-card click = load. Pushed first so the action buttons (pushed later,
+    // hit-tested first) win inside their sub-rects.
+    pushHot(cx, cardY, cardW, cardH, () => libPlay(item));
+
+    // 2x2 action grid
     const gx = cx + 10, gy = cardY + 46, gw = (cardW - 20 - 6) / 2, gh = 17, vgap = 5;
     const acts = [['play', 0, 0], ['EDIT', 1, 0], ['CLR', 0, 1], ['DEL', 1, 1]];
     for (const [t, c, rr] of acts) {
@@ -367,9 +421,12 @@ function drawLibrary() {
       panel(ax, ay, gw, gh, 4, t === 'DEL' ? '#3a2326' : '#33373e', t === 'DEL' ? '#241416' : '#262a30');
       if (t === 'play') W.icon('tri', ax + gw / 2, ay + gh / 2, 10, THEME.ink);
       else label(t, ax + gw / 2, ay + gh / 2 + 0.5, { weight: 600, size: 9, spacing: 0.04, color: t === 'DEL' ? '#c98e8e' : THEME.ink, align: 'center', baseline: 'middle' });
+      const fn = t === 'play' ? () => libPlay(item) : t === 'EDIT' ? () => libEdit(item)
+        : t === 'CLR' ? () => libClr(item) : () => libDel(item);
+      pushHot(ax, ay, gw, gh, fn);
     }
   }
-  // ADD SOUND card
+  // ADD SOUND card (import wired in Slice 3b)
   const addX = CR - 15 - addW;
   const ctx = drawingContext;
   ctx.save();
@@ -506,6 +563,58 @@ function toggleBounce() {
     AudioEngine.stopBounce((buf) => AudioEngine.saveBounce(buf, 'bounce-01'));
   } else {
     AudioEngine.startBounce(true);
+  }
+}
+
+/* ---------------- library actions (Slice 3a, in-memory) ---------------- */
+
+// ▶ / card body — load this sound into the chain and play it. If the item
+// carries a saved config, it's applied; dry sources keep the current chain.
+function libPlay(item) {
+  if (!item.audio) return;
+  AudioEngine.loadSource(item.audio);
+  AppState.activeId = item.id;
+  if (item.config) {
+    AppState.config = deepClone(item.config);
+    AppState.selected = item.config.selected || AppState.selected;
+    AppState.config.selected = AppState.selected;
+    AudioEngine.applyConfig();
+  }
+  AudioEngine.play();
+}
+
+// EDIT — load this sound (and its saved config, if any) into the editor without
+// auto-playing. Dry sources start from the default preset so effects can be added.
+function libEdit(item) {
+  if (item.audio) AudioEngine.loadSource(item.audio);
+  AppState.activeId = item.id;
+  if (item.config) {
+    AppState.config = deepClone(item.config);
+    AppState.selected = item.config.selected || 'reverb';
+  } else {
+    resetConfig();
+  }
+  AppState.config.selected = AppState.selected;
+  AudioEngine.applyConfig();
+}
+
+// CLR — clear this sound's effects: it becomes a dry source. If it's the active
+// sound, the live chain is bypassed so you hear the dry signal immediately.
+function libClr(item) {
+  item.config = null;
+  if (AppState.activeId === item.id) {
+    for (const s of FX_STAGES) AppState.config[s].on = false;
+    AudioEngine.applyConfig();
+  }
+}
+
+// DEL — remove the sound from the library. If it was active, stop playback.
+function libDel(item) {
+  const i = AppState.library.findIndex((x) => x.id === item.id);
+  if (i >= 0) AppState.library.splice(i, 1);
+  if (AppState.activeId === item.id) {
+    AppState.activeId = null;
+    AudioEngine.stop();
   }
 }
 
