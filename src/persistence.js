@@ -15,7 +15,9 @@
  */
 
 const Store = (function () {
-  const DB = 'ferric', STORE = 'audio', VER = 1;
+  const DB = 'ferric',
+    STORE = 'audio',
+    VER = 1;
   const LS_KEY = 'ferric.library';
   let dbp = null;
 
@@ -25,7 +27,12 @@ const Store = (function () {
     if (dbp) return dbp;
     dbp = new Promise((res, rej) => {
       let r;
-      try { r = indexedDB.open(DB, VER); } catch (e) { rej(e); return; }
+      try {
+        r = indexedDB.open(DB, VER);
+      } catch (e) {
+        rej(e);
+        return;
+      }
       r.onupgradeneeded = () => {
         const db = r.result;
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
@@ -41,21 +48,36 @@ const Store = (function () {
   }
 
   function putBlob(id, blob) {
-    return store('readwrite').then((os) => new Promise((res, rej) => {
-      const r = os.put(blob, id); r.onsuccess = () => res(); r.onerror = () => rej(r.error);
-    }));
+    return store('readwrite').then(
+      (os) =>
+        new Promise((res, rej) => {
+          const r = os.put(blob, id);
+          r.onsuccess = () => res();
+          r.onerror = () => rej(r.error);
+        })
+    );
   }
 
   function getBlob(id) {
-    return store('readonly').then((os) => new Promise((res, rej) => {
-      const r = os.get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error);
-    }));
+    return store('readonly').then(
+      (os) =>
+        new Promise((res, rej) => {
+          const r = os.get(id);
+          r.onsuccess = () => res(r.result || null);
+          r.onerror = () => rej(r.error);
+        })
+    );
   }
 
   function delBlob(id) {
-    return store('readwrite').then((os) => new Promise((res, rej) => {
-      const r = os.delete(id); r.onsuccess = () => res(); r.onerror = () => rej(r.error);
-    }));
+    return store('readwrite').then(
+      (os) =>
+        new Promise((res, rej) => {
+          const r = os.delete(id);
+          r.onsuccess = () => res();
+          r.onerror = () => rej(r.error);
+        })
+    );
   }
 
   /* ---------------- localStorage (index) ---------------- */
@@ -64,15 +86,27 @@ const Store = (function () {
     try {
       const items = library.map((it) => ({ id: it.id, name: it.name, type: it.type, config: it.config }));
       localStorage.setItem(LS_KEY, JSON.stringify({ activeId: activeId || null, items }));
-    } catch (e) { console.warn('[store] saveLibrary failed', e); }
+    } catch (e) {
+      console.warn('[store] saveLibrary failed', e);
+    }
   }
 
   function loadLibrary() {
-    try { const s = localStorage.getItem(LS_KEY); return s ? JSON.parse(s) : null; }
-    catch (e) { return null; }
+    try {
+      const s = localStorage.getItem(LS_KEY);
+      return s ? JSON.parse(s) : null;
+    } catch (e) {
+      return null;
+    }
   }
 
-  function clearLibrary() { try { localStorage.removeItem(LS_KEY); } catch (e) { /* ignore */ } }
+  function clearLibrary() {
+    try {
+      localStorage.removeItem(LS_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
 
   /* ---------------- WAV encode (bounce buffer → Blob) ---------------- */
 

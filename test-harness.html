@@ -66,8 +66,8 @@
   <body>
     <h1>FX Processor · Phase 1 Audio Harness</h1>
     <p class="hint">
-      1) START AUDIO &nbsp;2) load a sample &nbsp;3) PLAY &nbsp;4) toggle bypass / drag sliders
-      &nbsp;5) BOUNCE 4s → WAV download &nbsp;6) RUN SELF-TEST (objective bypass/leak check)
+      1) START AUDIO &nbsp;2) load a sample &nbsp;3) PLAY &nbsp;4) toggle bypass / drag sliders &nbsp;5) BOUNCE 4s → WAV download &nbsp;6)
+      RUN SELF-TEST (objective bypass/leak check)
     </p>
     <pre
       id="report"
@@ -146,18 +146,10 @@
         }
 
         // --- a few representative param sliders ---
-        slider('LowPass cutoff (Hz)', 20, 20000, AppState.config.lowpass.cutoff, 1, (v) =>
-          AudioEngine.setParam('lowpass', 'cutoff', v)
-        );
-        slider('Waveshaper amount', 0, 1, AppState.config.waveshaper.amount, 0.01, (v) =>
-          AudioEngine.setParam('waveshaper', 'amount', v)
-        );
-        slider('Reverb dry/wet', 0, 1, AppState.config.reverb.dw, 0.01, (v) =>
-          AudioEngine.setParam('reverb', 'dw', v)
-        );
-        slider('Master volume', 0, 1, AppState.config.master.volume, 0.01, (v) =>
-          AudioEngine.setParam('master', 'volume', v)
-        );
+        slider('LowPass cutoff (Hz)', 20, 20000, AppState.config.lowpass.cutoff, 1, (v) => AudioEngine.setParam('lowpass', 'cutoff', v));
+        slider('Waveshaper amount', 0, 1, AppState.config.waveshaper.amount, 0.01, (v) => AudioEngine.setParam('waveshaper', 'amount', v));
+        slider('Reverb dry/wet', 0, 1, AppState.config.reverb.dw, 0.01, (v) => AudioEngine.setParam('reverb', 'dw', v));
+        slider('Master volume', 0, 1, AppState.config.master.volume, 0.01, (v) => AudioEngine.setParam('master', 'volume', v));
 
         // --- bounce ---
         let r4 = makeRow('Bounce (processed → WAV):');
@@ -293,9 +285,7 @@
         });
         AudioEngine.applyStage('compressor');
         const act = await captureAvg();
-        lines.push(
-          `COMPRESSOR active vs bypass · level ${dbd(act.level, base.level)} (gain change expected)`
-        );
+        lines.push(`COMPRESSOR active vs bypass · level ${dbd(act.level, base.level)} (gain change expected)`);
 
         // Cleanup: stop noise, restore the saved config.
         noise.stop();
@@ -313,11 +303,7 @@
       /* ---- tiny dom helpers ---- */
       function makeRow(labelText) {
         const row = createDiv().class('row');
-        createSpan(labelText)
-          .parent(row)
-          .style('color', '#8a9098')
-          .style('font-size', '11px')
-          .style('min-width', '160px');
+        createSpan(labelText).parent(row).style('color', '#8a9098').style('font-size', '11px').style('min-width', '160px');
         return row;
       }
       function btn(row, label, onClick) {
@@ -342,9 +328,7 @@
         b.elt.classList.add('on');
       }
       function markActive(row, name) {
-        row.elt
-          .querySelectorAll('button')
-          .forEach((el) => el.classList.toggle('on', el.textContent === name));
+        row.elt.querySelectorAll('button').forEach((el) => el.classList.toggle('on', el.textContent === name));
       }
 
       /* ---- draw both spectra + VU so we can SEE the analyzers run ---- */
@@ -366,12 +350,7 @@
         rect(8, height - 22, map(lvl, 0, 0.5, 0, width - 16, true), 14);
         fill(180);
         text(
-          'master level: ' +
-            lvl.toFixed(3) +
-            '   playing: ' +
-            AppState.isPlaying +
-            '   rec: ' +
-            AudioEngine.isRecording(),
+          'master level: ' + lvl.toFixed(3) + '   playing: ' + AppState.isPlaying + '   rec: ' + AudioEngine.isRecording(),
           8,
           height - 26
         );
