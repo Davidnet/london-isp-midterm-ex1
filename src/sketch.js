@@ -89,12 +89,17 @@ function initLibrary() {
       Store.getBlob(e.id)
         .then((blob) => {
           if (!blob) return;
+          const objUrl = URL.createObjectURL(blob);
           loadSound(
-            URL.createObjectURL(blob),
+            objUrl,
             (snd) => {
               item.audio = snd;
+              URL.revokeObjectURL(objUrl);
             },
-            (err) => console.warn('[restore] load failed', e.id, err)
+            (err) => {
+              URL.revokeObjectURL(objUrl);
+              console.warn('[restore] load failed', e.id, err);
+            }
           );
         })
         .catch(() => {});
