@@ -19,21 +19,21 @@
 
 const AudioEngine = (function () {
   // Effect nodes (created once in init).
-  let nodes = null; // { lowpass, waveshaper, compressor, reverb, masterGain }
-  let src = null; // current p5.SoundFile
+  let nodes = null;          // { lowpass, waveshaper, compressor, reverb, masterGain }
+  let src = null;            // current p5.SoundFile
 
   // Analysis / metering.
-  let fftIn = null; // taps the source (pre-FX)
-  let fftOut = null; // taps masterGain (post-FX)
-  let amplitude = null; // master level for the VU meter
+  let fftIn = null;          // taps the source (pre-FX)
+  let fftOut = null;         // taps masterGain (post-FX)
+  let amplitude = null;      // master level for the VU meter
 
   // Recording (bounce).
   let recorder = null;
   let recBuffer = null;
   let recording = false;
-  let onBounceComplete = null; // fires when the recorded buffer is ready
+  let onBounceComplete = null;   // fires when the recorded buffer is ready
 
-  let started = false; // AudioContext running + graph built
+  let started = false;       // AudioContext running + graph built
 
   // p5.sound effects expose `.input` (a Web Audio node); raw nodes do not.
   // Connect into `.input` when present, else the object itself.
@@ -50,24 +50,22 @@ const AudioEngine = (function () {
     if (nodes) return;
 
     nodes = {
-      lowpass: new p5.LowPass(),
+      lowpass:    new p5.LowPass(),
       waveshaper: new p5.Distortion(),
       compressor: new p5.Compressor(),
-      reverb: new p5.Reverb(),
+      reverb:     new p5.Reverb(),
       masterGain: new p5.Gain(),
     };
 
     // Remove each effect's default route to the main output.
-    [nodes.lowpass, nodes.waveshaper, nodes.compressor, nodes.reverb].forEach((n) =>
-      n.disconnect()
-    );
+    [nodes.lowpass, nodes.waveshaper, nodes.compressor, nodes.reverb].forEach((n) => n.disconnect());
 
     // Wire the fixed series chain.
     nodes.lowpass.connect(inputOf(nodes.waveshaper));
     nodes.waveshaper.connect(inputOf(nodes.compressor));
     nodes.compressor.connect(inputOf(nodes.reverb));
     nodes.reverb.connect(inputOf(nodes.masterGain));
-    nodes.masterGain.connect(); // → main output (device)
+    nodes.masterGain.connect();             // → main output (device)
 
     // Analyzers / meter. fftIn is pointed at the source in loadSource().
     fftIn = new p5.FFT();
@@ -159,10 +157,9 @@ const AudioEngine = (function () {
 
   // Convenience wrappers that update state then re-apply just that stage.
   function setParam(stage, param, value) {
-    const stored =
-      typeof window.setParam === 'function'
-        ? window.setParam(stage, param, value) // state.js helper (clamps)
-        : (AppState.config[stage][param] = value);
+    const stored = (typeof window.setParam === 'function')
+      ? window.setParam(stage, param, value)   // state.js helper (clamps)
+      : (AppState.config[stage][param] = value);
     if (stage === 'master') applyMaster();
     else applyStage(stage);
     return stored;
@@ -243,14 +240,14 @@ const AudioEngine = (function () {
   // transferred (see startBounce) — not synchronously here.
   function stopBounce(cb) {
     if (!recording) return;
-    onBounceComplete = typeof cb === 'function' ? cb : null;
-    recorder.stop(); // async → triggers the record() callback above
+    onBounceComplete = (typeof cb === 'function') ? cb : null;
+    recorder.stop();   // async → triggers the record() callback above
   }
 
   // Trigger a browser download of a recorded buffer as WAV.
   function saveBounce(buffer, name) {
     const filename = (name || 'bounce').replace(/\.wav$/i, '') + '.wav';
-    save(buffer, filename); // p5 global save() handles p5.SoundFile → WAV
+    save(buffer, filename);  // p5 global save() handles p5.SoundFile → WAV
   }
 
   function isRecording() {
@@ -277,14 +274,8 @@ const AudioEngine = (function () {
     stopBounce,
     saveBounce,
     isRecording,
-    get started() {
-      return started;
-    },
-    get source() {
-      return src;
-    },
-    get nodes() {
-      return nodes;
-    },
+    get started() { return started; },
+    get source() { return src; },
+    get nodes() { return nodes; },
   };
 })();
