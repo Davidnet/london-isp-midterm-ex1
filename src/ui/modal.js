@@ -87,6 +87,7 @@ function importFile(file) {
       AppState.modal = 'add';
     },
     function (err) {
+      URL.revokeObjectURL(url);
       console.warn('[import] decode failed', err);
       window.alert('Could not decode that audio file.');
     }
