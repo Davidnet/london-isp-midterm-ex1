@@ -9,8 +9,8 @@
     "lint:fix": "npm run lint:js -- --fix && npm run format",
     "lint:js": "eslint \"src/**/*.js\"",
     "lint:html": "htmlhint \"*.html\"",
-    "format": "prettier --write \"*.html\"",
-    "format:check": "prettier --check \"*.html\""
+    "format": "prettier --write \"*.html\" \"src/**/*.js\"",
+    "format:check": "prettier --check \"*.html\" \"src/**/*.js\""
   },
   "devDependencies": {
     "eslint": "^9.29.0",
