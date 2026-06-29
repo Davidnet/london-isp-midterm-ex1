@@ -25,31 +25,31 @@ const FX_STAGES = ['lowpass', 'waveshaper', 'compressor', 'reverb'];
 const PARAM_RANGES = {
   lowpass: {
     cutoff: { min: 20, max: 20000, log: true, unit: 'Hz' },
-    res:    { min: 0,  max: 30,    unit: 'Q' },
-    dw:     { min: 0,  max: 1 },
-    ol:     { min: 0,  max: 1 },
+    res: { min: 0, max: 30, unit: 'Q' },
+    dw: { min: 0, max: 1 },
+    ol: { min: 0, max: 1 },
   },
   waveshaper: {
-    amount:     { min: 0, max: 1 },
+    amount: { min: 0, max: 1 },
     oversample: { options: ['none', '2x', '4x'] },
-    dw:         { min: 0, max: 1 },
-    ol:         { min: 0, max: 1 },
+    dw: { min: 0, max: 1 },
+    ol: { min: 0, max: 1 },
   },
   compressor: {
-    threshold: { min: -100, max: 0,  unit: 'dB' },
-    ratio:     { min: 1,    max: 20, unit: ':1' },
-    attack:    { min: 0,    max: 1,  unit: 's' },
-    knee:      { min: 0,    max: 40, unit: 'dB' },
-    release:   { min: 0,    max: 1,  unit: 's' },
-    dw:        { min: 0,    max: 1 },
-    ol:        { min: 0,    max: 1 },
+    threshold: { min: -100, max: 0, unit: 'dB' },
+    ratio: { min: 1, max: 20, unit: ':1' },
+    attack: { min: 0, max: 1, unit: 's' },
+    knee: { min: 0, max: 40, unit: 'dB' },
+    release: { min: 0, max: 1, unit: 's' },
+    dw: { min: 0, max: 1 },
+    ol: { min: 0, max: 1 },
   },
   reverb: {
-    duration: { min: 0, max: 10,  unit: 's' },
-    decay:    { min: 0, max: 100 },
-    reverse:  { options: [false, true] },
-    dw:       { min: 0, max: 1 },
-    ol:       { min: 0, max: 1 },
+    duration: { min: 0, max: 10, unit: 's' },
+    decay: { min: 0, max: 100 },
+    reverse: { options: [false, true] },
+    dw: { min: 0, max: 1 },
+    ol: { min: 0, max: 1 },
   },
   master: {
     // Linear gain under the hood, but the knob tapers in dB (−60…0 dBFS) so equal
@@ -66,11 +66,11 @@ const PARAM_RANGES = {
 function makeDefaultConfig() {
   return {
     selected: 'reverb',
-    master:     { volume: 0.80 },
-    lowpass:    { on: true,  cutoff: 1240, res: 4.0,  dw: 0.60, ol: 0.50 },
-    waveshaper: { on: true,  amount: 0.55, oversample: '2x', dw: 0.72, ol: 0.50 },
-    compressor: { on: false, threshold: -24, ratio: 4, attack: 0.012, knee: 6, release: 0.18, dw: 1.0, ol: 0.50 },
-    reverb:     { on: true,  duration: 2.4, decay: 3.0, reverse: false, dw: 0.70, ol: 0.55 },
+    master: { volume: 0.8 },
+    lowpass: { on: true, cutoff: 1240, res: 4.0, dw: 0.6, ol: 0.5 },
+    waveshaper: { on: true, amount: 0.55, oversample: '2x', dw: 0.72, ol: 0.5 },
+    compressor: { on: false, threshold: -24, ratio: 4, attack: 0.012, knee: 6, release: 0.18, dw: 1.0, ol: 0.5 },
+    reverb: { on: true, duration: 2.4, decay: 3.0, reverse: false, dw: 0.7, ol: 0.55 },
   };
 }
 
@@ -97,13 +97,13 @@ const AppState = {
   config: makeDefaultConfig(),
 
   // ---- UI state (mirrors the mock's logic) ----
-  selected: 'reverb',   // which stage is open in the editor
-  recMode: 'idle',      // 'idle' | 'bounce'
-  modal: null,          // null | 'add' | 'bounce'
+  selected: 'reverb', // which stage is open in the editor
+  recMode: 'idle', // 'idle' | 'bounce'
+  modal: null, // null | 'add' | 'bounce'
 
   // ---- library ----
-  library: [],          // LibraryItem[]
-  activeId: null,       // id of the currently loaded/playing item
+  library: [], // LibraryItem[]
+  activeId: null, // id of the currently loaded/playing item
 
   // ---- transport mirror (UI reads these; engine is the authority) ----
   isPlaying: false,
