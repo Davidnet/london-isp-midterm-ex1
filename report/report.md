@@ -73,7 +73,7 @@ once and thereafter only pushes parameter changes into the live nodes.}
 # The effects
 
 *Low-pass filter* (`p5.LowPass`, via `freq()` and `res()`) attenuates
-everything above its cutoff at 24 dB/oct, while resonance emphasises
+everything above its cutoff at 12 dB/oct, while resonance emphasises
 the corner frequency. Figure 3 shows a broadband input reduced to its
 lowest bands by a 400 Hz cutoff.
 

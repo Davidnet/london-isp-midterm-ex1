@@ -377,7 +377,7 @@ function editorDescriptor(stage) {
   const meta = {
     lowpass: {
       name: 'LOW-PASS FILTER',
-      sub: '24 dB / oct',
+      sub: '12 dB / oct',
       knobs: [
         ['CUTOFF', 'cutoff'],
         ['RESONANCE', 'res'],
