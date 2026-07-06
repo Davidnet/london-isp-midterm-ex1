@@ -11,3 +11,10 @@ npm-debug.log*
 
 # Built deployable site (produced by `make`)
 /output/
+
+# LaTeX build intermediates (produced by report/build.sh)
+report/*.aux
+report/*.log
+report/*.out
+report/*.tex
+report/figures/pdfpage-*.png
