@@ -1,5 +1,6 @@
 ---
 title: "Ferric FX: a web-based audio effects processor in p5.js"
+subtitle: "(words: 499)"
 author: David Cardozo
 date: 5 July 2026
 documentclass: tufte-handout
@@ -10,7 +11,7 @@ header-includes: |
   \usetikzlibrary{arrows.meta,positioning,calc}
 ---
 
-# The application `\hfill\normalfont\upshape\small(499 words)`{=latex}
+# The application
 
 Ferric FX is a web audio application built with p5.js and its p5.sound
 library. A pre-recorded sound file plays through a fixed processing
@@ -28,7 +29,7 @@ displays, so every edit is immediately visible. Transport buttons
 (play/pause, stop, loop, skip to start) drive the current
 `p5.SoundFile`.
 
-![The interface: transport and REC, signal-flow strip, live in/out spectra, per-stage editor, sounds library.](figures/fig-overview.png)
+![The interface: transport and REC, signal-flow strip, live in/out spectra, per-stage editor, sounds library.](figures/fig-overview.png){width=88%}
 
 ```{=latex}
 \begin{figure*}[b]
