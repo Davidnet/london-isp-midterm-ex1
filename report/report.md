@@ -1,6 +1,8 @@
 ---
 title: "Ferric FX: a web-based audio effects processor in p5.js"
-subtitle: "(words: 499)"
+subtitle: |
+  (words: 499)\
+  Link: \textcolor{blue}{\url{https://hub.labs.coursera.org/connect/sharedwtihvxaf}}
 author: David Cardozo
 date: 5 July 2026
 documentclass: tufte-handout
@@ -106,13 +108,13 @@ the dry signal at unity so the graph never needs rewiring.
 A *feedback delay* (`p5.Delay`) would add echoes; at short delay times
 the delayed copy interferes with the direct signal, carving comb-filter
 notches spaced at 1/delay Hz across the spectrum.^[`p5.Delay`
-reference: <https://p5js.org/reference/p5.sound/p5.Delay>. On the comb
+reference: <https://archive.p5js.org/reference/#/p5.Delay>. On the comb
 filtering produced by short feedback delays, see J. O. Smith III,
 *Physical Audio Signal Processing*, W3K Publishing, 2010, §"Feedback
 Comb Filters".] A *multi-band equaliser* (`p5.EQ`) would allow surgical
 boosts and cuts at chosen frequencies rather than the low-pass's single
 downward slope.^[`p5.EQ` reference:
-<https://p5js.org/reference/p5.sound/p5.EQ>. Equaliser and filter
+<https://archive.p5js.org/reference/#/p5.EQ>. Equaliser and filter
 effect design is treated in J. D. Reiss and A. P. McPherson, *Audio
 Effects: Theory, Implementation and Application*, CRC Press, 2015.]
 Both are p5.sound nodes that could be patched into the chain unchanged.
@@ -121,8 +123,8 @@ Both are p5.sound nodes that could be patched into the chain unchanged.
 
 Six pre-recorded WAVs load into the library panel at start-up.
 Selecting a card loads it into the chain; EDIT opens its stored effect
-configuration in the editor, CLR resets it to a dry source, DEL removes
-it. REC records the processed master bus with `p5.SoundRecorder`;
+configuration in the editor, CLR resets it to a dry source, and DEL
+removes it. REC records the processed master bus with `p5.SoundRecorder`;
 stopping opens the capture dialog (Figure 5) where the take can be
 auditioned, renamed, exported as a WAV via `save()`, or added to the
 library with its effect settings baked in.

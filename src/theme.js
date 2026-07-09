@@ -1,12 +1,5 @@
 /*
  * theme.js — design tokens + low-level canvas drawing primitives.
- *
- * Tokens come straight from the handoff README + the .dc.html mock (colors,
- * finishes, fonts, geometry). Primitives wrap the raw CanvasRenderingContext2D
- * (p5's `drawingContext`) so the rest of the UI can draw gradient panels, LEDs,
- * screws, and skeuomorphic detail that plain p5 fills can't express.
- *
- * Exposes a single `THEME` global plus draw helpers (panel, led, screw, …).
  */
 
 const THEME = {

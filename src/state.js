@@ -3,12 +3,6 @@
  *
  * Holds the effect-config model, the mock's default preset, the global UI state
  * (which stage is selected, record mode, modal), and the library list.
- *
- * This file is PURE DATA + helpers: no audio nodes, no canvas drawing. The audio
- * engine reads from here to configure its graph; the UI reads from here to render
- * and writes back here on interaction.
- *
- * Loaded in p5 global mode, so it attaches a single `AppState` global.
  */
 
 // Left-to-right signal chain, matching the chain strip in the UI.

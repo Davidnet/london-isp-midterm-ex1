@@ -1,12 +1,6 @@
 /*
  * persistence.js — library persistence (Slice 3d).
  *
- * Two tiers, matching the handoff:
- *   - localStorage  → the small library INDEX (id, name, type, effect config) +
- *     the active selection. JSON only, no audio.
- *   - IndexedDB     → the audio BLOBS (imported File blobs, encoded bounce WAVs),
- *     keyed by item id. Too big for localStorage.
- *
  * Default "sample" sounds aren't stored as blobs — they reload from /assets and
  * re-link by id on startup. Everything is best-effort: if storage is unavailable
  * (private mode, blocked), calls fail quietly and the app still runs in-memory.
