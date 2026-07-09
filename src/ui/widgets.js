@@ -10,7 +10,7 @@
  * turn real engine values (1240 Hz, 0.012 s) into the mock's readouts (1.24 kHz,
  * 12 ms) and knob indicator angles.
  *
- * Exposes a `W` global (the widget namespace) + value-mapping helpers.
+ * Exposes a `W` global (the widget namespace)
  */
 
 const W = {};

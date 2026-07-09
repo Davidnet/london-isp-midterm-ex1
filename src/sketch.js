@@ -1,11 +1,6 @@
 /*
  * sketch.js — Slice 1 main sketch: layout, render orchestration, input.
  *
- * Draws the whole unit in a fixed 1320-wide DESIGN SPACE that is scaled to fit
- * the window; mouse coords are inverted through that transform for hit-testing.
- * Clickable regions are collected each frame into `hot[]` (immediate-mode), so
- * adding interactions later is just pushing rects.
- *
  * Slice 1 wires: stage selection, per-stage bypass, transport, live spectra +
  * VU, REC→bounce. Knob/fader EDITING and the library/modal come in later slices.
  */
